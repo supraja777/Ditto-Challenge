@@ -1,65 +1,74 @@
 import os
-from dotenv import load_dotenv
 from groq import Groq
-from sentence_transformers import SentenceTransformer
-
-# Load environment variables from .env
+from dotenv import load_dotenv
 load_dotenv()
 
-class PersonaAgent:
+class FeedbackAgent:
     def __init__(self):
-        self.api_key = os.getenv("GROQ_API_KEY")
-        if not self.api_key:
-            raise ValueError("GROQ_API_KEY not found in .env file")
+        """
+        Initializes the Groq client for LLM-based trait evolution.
+        """
+        self.client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+
+    def update_user_traits(self, current_traits, match_name, feedback_reason):
+        """
+        Takes existing traits and feedback, then produces a new evolved trait string.
         
-        self.client = Groq(api_key=self.api_key)
-        self.embed_model = SentenceTransformer('all-MinLM-L6-v2')
-    
-    def _distill_persona(self, user_data: dict) -> str:
+        Args:
+            current_traits (str): The user's current comma-separated traits.
+            match_name (str): The name of the person they matched with.
+            feedback_reason (str): The explanation for why it was a negative match.
+            
+        Returns:
+            str: The updated/evolved traits string.
+        """
+        
         prompt = (
-            f"Analyze the following user data and write a dense, one-paragraph "
-            f"psychological and lifestyle profile. Focus on their 'vibe', "
-            f"social energy, and core values. Data: {user_data}"
+            f"User's Current Traits: {current_traits}\n"
+            f"Negative Match Feedback: The user disliked a match with {match_name} because: '{feedback_reason}'.\n\n"
+            f"Task: Produce a new, updated list of traits for this user. "
+            f"1. Retain the core positive identity of the user.\n"
+            f"2. Incorporate specific 'anti-traits' or preferences based on the feedback reason.\n"
+            f"3. Ensure the result is a concise, comma-separated string suitable for embedding generation.\n"
+            f"Return ONLY the new traits string, no conversational filler."
         )
 
-        completion = self.client.chat.completions.create(
-            messages=[
-                {"role": "system", "content": "You are an expert psychologist and profiler."},
-                {"role": "user", "content": prompt}
-            ],
-            model="llama-3.1-70b-versatile",
-            temperature=0.5 # Lower temperature for more consistent profiles
-        )
-        return completion.choices[0].message.content
+        try:
+            response = self.client.chat.completions.create(
+                messages=[
+                    {"role": "system", "content": "You are a psychological profiling engine that evolves personality traits based on social feedback."},
+                    {"role": "user", "content": prompt}
+                ],
+                model="llama-3.1-8b-instant",
+                temperature=0.4
+            )
+            
+            # Clean up the response to ensure it's just the string
+            evolved_traits = response.choices[0].message.content.strip()
+            return evolved_traits
 
-    
-    def create_embedding(self, user_data: dict):
-        print("Processing persona for : ", {user_data.get('name')})
-
-        persona_text = self._distill_persona(user_data)
-
-        vector = self.embed_model.encode(persona_text).tolist()
-
-        return {
-            "id" : user_data.get("id"),
-            "profile_summary": persona_text,
-            "embedding": vector
-        }
+        except Exception as e:
+            print(f"Error evolving traits: {e}")
+            return current_traits # Fallback to original traits on error
+        
 
 if __name__ == "__main__":
-    print(" in main ")
-    agent = PersonaAgent()
+    # 1. Setup initial state
+    agent = FeedbackAgent()
+    old_traits = "Software Engineer, Introverted, Loves Coffee, Calm, Analytical"
+    failed_match = "Alex"
+    reason = "Alex was extremely loud, hyper-active, and didn't stop talking about extreme sports."
+
+    print(f"DEBUG: Original Traits -> {old_traits}")
     
-    sample_user = {
-        "id": "user_01",
-        "name": "Jordan",
-        "age": 29,
-        "hobbies": ["Urban exploration", "Synthesizer restoration"],
-        "interests": ["Modular synths", "Industrial design", "Brativism"],
-        "traits": "High openness, slightly cynical, extremely creative"
-    }
+    # 2. Run the evolution
+    updated_traits = agent.update_user_traits(old_traits, failed_match, reason)
     
-    persona_packet = agent.create_embedding(sample_user)
-    print("\nGenerated Profile Summary:")
-    print(persona_packet["profile_summary"])
-    print(f"\nVector Dimensions: {len(persona_packet['embedding'])}")
+    # 3. Show Results
+    print("-" * 30)
+    print(f"DEBUG: Evolved Traits  -> {updated_traits}")
+    print("-" * 30)
+    
+    if len(updated_traits.split(',')) > len(old_traits.split(',')):
+        print("Success: New preferences were likely added to the trait string.")
+        print("Updated traits : ", updated_traits)
