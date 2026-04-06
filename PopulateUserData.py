@@ -1,7 +1,7 @@
 import json
 import os
 from database.User import User
-from PersonaAgent import PersonaAgent
+from agents.PersonaAgent import PersonaAgent
 
 class PopulateUserData:
     def __init__(self, json_file_path):

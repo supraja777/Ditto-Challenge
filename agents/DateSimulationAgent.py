@@ -1,7 +1,7 @@
 import os
 from groq import Groq
-from MatchMakingAgent import MatchmakingAgent
-from PersonaAgent import PersonaAgent
+from agents.MatchMakingAgent import MatchmakingAgent
+from agents.PersonaAgent import PersonaAgent
 
 class DateSimulationAgent:
     def __init__(self):

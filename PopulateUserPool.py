@@ -1,5 +1,5 @@
-from PersonaAgent import PersonaAgent
-from MatchMakingAgent import MatchmakingAgent
+from agents.PersonaAgent import PersonaAgent
+from agents.MatchMakingAgent import MatchmakingAgent
 def get_sample_users():
     """Returns a list of 10 diverse user dictionaries."""
     return [

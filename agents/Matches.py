@@ -1,9 +1,9 @@
 import os
 import streamlit as st
 from database.User import User
-from PersonaAgent import PersonaAgent
-from MatchMakingAgent import MatchmakingAgent
-from DateSimulationAgent import DateSimulationAgent
+from agents.PersonaAgent import PersonaAgent
+from agents.MatchMakingAgent import MatchmakingAgent
+from agents.DateSimulationAgent import DateSimulationAgent
 
 class Matches:
     def __init__(self):
