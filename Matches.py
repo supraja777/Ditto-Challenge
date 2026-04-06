@@ -1,78 +1,66 @@
 import os
-import json
-import numpy as np
+import streamlit as st
+from database.User import User
+from PersonaAgent import PersonaAgent
 from MatchMakingAgent import MatchmakingAgent
 from DateSimulationAgent import DateSimulationAgent
-# Your PersonaAgent is imported here
-from PersonaAgent import PersonaAgent 
-import streamlit as st
 
 class Matches:
-    def __init__(self, raw_user_data):
+    def __init__(self):
         """
-        raw_user_data: List of dicts (e.g., from UserPool.json or a CSV)
+        Initializes the Matchmaking system by pulling the latest 
+        user pool directly from the Supabase Cloud.
         """
-        self.raw_data = raw_user_data
+        self.user_manager = User()
         self.persona_agent = PersonaAgent()
         self.matchmaker = MatchmakingAgent()
         self.simulator = DateSimulationAgent()
-        self.processed_pool = []
-
-    def _prepare_pool(self):
-        """
-        Step 1: Convert raw text into AI-distilled personas and vectors.
-        """
-        st.write("🧠 Distilling personas and generating embeddings...")
-        for user in self.raw_data:
-            # Call your PersonaAgent.create_embedding()
-            persona_packet = self.persona_agent.create_embedding(user)
-            
-            # Re-attach metadata for the MatchmakingAgent's heuristics (Age/Traits)
-            persona_packet.update({
-                "name": user.get('name'),
-                "age": user.get('age', 0),
-                "traits": user.get('traits', '')
-            })
-            
-            self.processed_pool.append(persona_packet)
-            self.matchmaker.add_to_pool(persona_packet)
         
-        st.success(f"Successfully processed {len(self.processed_pool)} personas.")
+        # 1. Sync with Cloud: Pull the latest processed users
+        self.processed_pool = self.user_manager.get_all_users()
+        
+        # 2. Feed the Matchmaker: Internalize the pool for vector math
+        if not self.processed_pool:
+            print("⚠️ Warning: User pool is empty. Did you run PopulateUserData?")
+        else:
+            for user in self.processed_pool:
+                # The matchmaker needs these to calculate cosine similarity
+                self.matchmaker.add_to_pool(user)
+            print(f"✅ Matches initialized with {len(self.processed_pool)} users from Supabase.")
 
     def generate_exclusive_pairs(self):
         """
         Orchestrates the Matchmaking and Simulation agents to create 
-        one-to-one pairings from the user pool.
+        one-to-one pairings. Each user can only have ONE match.
         """
-        # 1. Ensure the pool has been processed by PersonaAgent
-        if not self.processed_pool:
-            self._prepare_pool()
-
         # Track IDs of users who haven't been matched yet
         available_ids = [u['id'] for u in self.processed_pool]
         final_pairings = []
 
         print(f"🚀 Starting Exclusive Matchmaking for {len(available_ids)} users...")
+        st.write(f"🚀 Starting Exclusive Matchmaking for {len(available_ids)} users...")
 
-        # 2. Main Matching Loop
+        # --- Main Matching Loop ---
         while len(available_ids) > 1:
-            # Pick the next person needing a match
+            # Pick the first person in the list to find a match for
             uid_a = available_ids[0]
             user_a = next(u for u in self.processed_pool if u['id'] == uid_a)
             
-            # 3. Call MatchmakingAgent to find top candidates
-            # We ask for a larger k (e.g., 10) to ensure we find enough 'available' users
-            all_potential_matches = self.matchmaker.get_top_matches(uid_a, top_k=3)
+            # 1. Ask Matchmaker for the top mathematical candidates
+            # We fetch 10 to ensure we have enough 'available' backups
+            all_potential_matches = self.matchmaker.get_top_matches(uid_a, top_k=10)
             
-            # Filter results: Only candidates who are still in available_ids
-            valid_candidates = [m for m in all_potential_matches if m['id'] in available_ids]
+            # 2. Filter: Must be currently available AND NOT the user themselves
+            valid_candidates = [
+                m for m in all_potential_matches 
+                if m['id'] in available_ids and m['id'] != uid_a
+            ]
             
-            # Use the Top 3 valid mathematical matches for the simulation
+            # Use the Top 3 valid candidates for the 'Chemistry' simulation
             top_3_to_simulate = valid_candidates[:3]
             
             if not top_3_to_simulate:
-                # If no one in the remaining pool meets the matchmaker's criteria
-                print(f"⚠️ No suitable matches found for {user_a['name']}. Skipping.")
+                print(f"⚠️ No suitable partners left for {user_a['name']}. Moving to next.")
                 available_ids.remove(uid_a)
                 continue
 
@@ -80,22 +68,23 @@ class Matches:
             best_partner_profile = None
             best_result_packet = None
 
-            # 4. Simulation Logic: Test the 'Chemistry' of the top candidates
+            # 3. Simulation Logic: Test 'Chemistry' via LLM conversation
             for candidate in top_3_to_simulate:
                 user_b = next(u for u in self.processed_pool if u['id'] == candidate['id'])
                 
                 print(f"🎭 Simulating Date: {user_a['name']} + {user_b['name']}...")
+                st.write(f"🎭 Simulating Date: {user_a['name']} + {user_b['name']}...")
                 
-                # Execute the conversation and evaluation
+                # The simulator generates a transcript and an impression_score
                 sim_result = self.simulator.simulate_date(user_a, user_b)
                 
-                # Check if this is the best simulation so far for User A
+                # Identify the partner with the highest chemistry for User A
                 if sim_result['impression_score'] > best_sim_score:
                     best_sim_score = sim_result['impression_score']
                     best_partner_profile = user_b
                     best_result_packet = sim_result
 
-            # 5. Finalize the Pairing
+            # 4. Finalize the Pairing
             if best_partner_profile:
                 final_pairings.append({
                     "user_a": user_a,
@@ -106,17 +95,25 @@ class Matches:
                 })
                 
                 print(f"✅ MATCH CONFIRMED: {user_a['name']} & {best_partner_profile['name']}")
+                st.write(f"✅ MATCH CONFIRMED: {user_a['name']} & {best_partner_profile['name']}")
                 
-                # Remove BOTH users from the available list
+                # REMOVE BOTH users so they aren't matched again
                 available_ids.remove(uid_a)
                 available_ids.remove(best_partner_profile['id'])
             else:
-                # Fallback: remove User A if no partner could be simulated
+                # If simulation fails for some reason, remove User A to prevent infinite loop
                 available_ids.remove(uid_a)
 
-        # 6. Handle the "Odd Person Out"
+        # 5. Handle the "Odd Person Out"
         if len(available_ids) == 1:
             leftover = next(u for u in self.processed_pool if u['id'] == available_ids[0])
-            print(f"ℹ️ {leftover['name']} remains unmatched.")
+            print(f"ℹ️ {leftover['name']} remains unmatched (Odd number of users).")
+            st.write(f"ℹ️ {leftover['name']} remains unmatched (Odd number of users).")
 
         return final_pairings
+
+# --- Test Script ---
+if __name__ == "__main__":
+    orchestrator = Matches()
+    results = orchestrator.generate_exclusive_pairs()
+    print(f"\n✨ Total Pairs Created: {len(results)}")

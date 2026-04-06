@@ -39,7 +39,7 @@ with col_btn1:
                     "ID": u['id'],
                     "Name": u['name'],
                     "Age": u['age'],
-                    "Traits": u['traits'],
+                    "Traits": u['current_traits'],
                     "Summary": u['profile_summary']
                 })
             st.table(display_data)
@@ -54,7 +54,7 @@ with col_btn2:
         else:
             # 1. Trigger the logic via the Matches class
             with st.spinner("Agents are collaborating to find the best pairs..."):
-                orchestrator = Matches(raw_users)
+                orchestrator = Matches()
                 # This triggers the full pipeline: Preparation -> Simulation -> Matching
                 st.session_state.final_matches = orchestrator.generate_exclusive_pairs()
             
@@ -72,7 +72,7 @@ if st.session_state.final_matches:
             
             with col_a:
                 st.subheader(match['user_a']['name'])
-                st.write(f"Traits: *{match['user_a']['traits']}*")
+                st.write(f"Traits: *{match['user_a']['current_traits']}*")
             
             with col_heart:
                 st.markdown("<h2 style='text-align: center;'>❤️</h2>", unsafe_allow_html=True)
@@ -81,7 +81,7 @@ if st.session_state.final_matches:
             
             with col_b:
                 st.subheader(match['user_b']['name'])
-                st.write(f"Traits: *{match['user_b']['traits']}*")
+                st.write(f"Traits: *{match['user_b']['current_traits']}*")
             
             st.success(f"**Agent Critique:** {match['critique']}")
             with st.expander("Read Date Transcript"):

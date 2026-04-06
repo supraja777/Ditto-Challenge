@@ -1,9 +1,22 @@
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
-
+import json
 class MatchmakingAgent:
     def __init__(self):
         self.user_pool = [] # List of persona_packets
+
+    def _parse_embedding(self, embedding_data):
+        """
+        HELPER: This is the 'stripper' that removes the quotes.
+        It turns "[0.1, 0.2]" (String) into [0.1, 0.2] (List).
+        """
+        if isinstance(embedding_data, str):
+            try:
+                return json.loads(embedding_data)
+            except Exception as e:
+                print(f"❌ Error parsing embedding string: {e}")
+                return None
+        return embedding_data
 
     def add_to_pool(self, persona_packet: dict):
         self.user_pool.append(persona_packet)
@@ -38,13 +51,31 @@ class MatchmakingAgent:
         if not target: return []
 
         scored_matches = []
-        target_vec = np.array(target['embedding']).reshape(1, -1)
+
+        target_list = self._parse_embedding(target.get('embedding'))
+        target_vec = np.array(target_list).reshape(1, -1)
+        # target_vec = np.array(target['embedding'])
+
+        # if isinstance(target_vec, str):
+        #     print("Coming heereeeeeeeeeeeeeeee   ")
+        #     target_vec = json.loads(target_vec) # This "removes the quotes"
+        #     target_vec = np.array(target_vec).reshape(1, -1)        
 
         for candidate in self.user_pool:
             if candidate['id'] == target_id:
                 continue
 
-            candidate_vec = np.array(candidate['embedding']).reshape(1, -1)
+            candidate_vec = self._parse_embedding(candidate.get('embedding'))
+            candidate_vec = np.array(candidate_vec).reshape(1, -1)
+
+            # candidate_vec = np.array(candidate['embedding'])
+
+            # if isinstance(target_vec, str):
+            #     print("Coming heereeeeeeeeeeeeeeee   ")
+            #     candidate_vec = json.loads(target_vec) # This "removes the quotes"
+            #     candidate_vec = np.array(target_vec).reshape(1, -1)   
+
+            # candidate_vec = np.array(candidate['embedding']).reshape(1, -1)
             
             # 1. Cosine Similarity (The "Vibe" Vector)
             cos_sim = float(cosine_similarity(target_vec, candidate_vec)[0][0])
