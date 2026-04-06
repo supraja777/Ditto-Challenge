@@ -22,7 +22,7 @@ class FeedbackAgent:
         Returns:
             str: The updated/evolved traits string.
         """
-        
+        print("IN feedback agent")
         prompt = (
             f"User's Current Traits: {current_traits}\n"
             f"Negative Match Feedback: The user disliked a match with {match_name} because: '{feedback_reason}'.\n\n"
@@ -30,6 +30,7 @@ class FeedbackAgent:
             f"1. Retain the core positive identity of the user.\n"
             f"2. Incorporate specific 'anti-traits' or preferences based on the feedback reason.\n"
             f"3. Ensure the result is a concise, comma-separated string suitable for embedding generation.\n"
+            f"4. Ensure the result contains only 5 main traits that covers both current traits and the feeedback reason.\n"
             f"Return ONLY the new traits string, no conversational filler."
         )
 
@@ -45,6 +46,7 @@ class FeedbackAgent:
             
             # Clean up the response to ensure it's just the string
             evolved_traits = response.choices[0].message.content.strip()
+            print("Evolved traits == ", evolved_traits)
             return evolved_traits
 
         except Exception as e:
