@@ -1,40 +1,43 @@
 import os
 from groq import Groq
 from dotenv import load_dotenv
+from database.User import User  # Import your DB manager
+
 load_dotenv()
 
 class FeedbackAgent:
     def __init__(self):
         """
-        Initializes the Groq client for LLM-based trait evolution.
+        Initializes the Groq client and the Database manager.
         """
         self.client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+        self.db_manager = User() # Initialize Supabase connection
 
-    def update_user_traits(self, current_traits, match_name, feedback_reason):
+    def update_user_traits(self, user_id, current_traits, match_name, feedback_reason):
         """
-        Takes existing traits and feedback, then produces a new evolved trait string.
+        Takes existing traits, evolves them via LLM, and SAVES them to the database.
         
         Args:
-            current_traits (str): The user's current comma-separated traits.
-            match_name (str): The name of the person they matched with.
-            feedback_reason (str): The explanation for why it was a negative match.
-            
-        Returns:
-            str: The updated/evolved traits string.
+            user_id (str): The unique ID of the user being updated (User B).
+            current_traits (str): User B's current traits.
+            match_name (str): The name of User A (the reviewer).
+            feedback_reason (str): The feedback text.
         """
-        print("IN feedback agent")
+        print(f"--- Evolving traits for User ID: {user_id} ---")
+        
         prompt = (
             f"User's Current Traits: {current_traits}\n"
-            f"Negative Match Feedback: The user disliked a match with {match_name} because: '{feedback_reason}'.\n\n"
-            f"Task: Produce a new, updated list of traits for this user. "
-            f"1. Retain the core positive identity of the user.\n"
-            f"2. Incorporate specific 'anti-traits' or preferences based on the feedback reason.\n"
-            f"3. Ensure the result is a concise, comma-separated string suitable for embedding generation.\n"
-            f"4. Ensure the result contains only 5 main traits that covers both current traits and the feeedback reason.\n"
+            f"Feedback from {match_name}: '{feedback_reason}'.\n\n"
+            f"Task: Produce a new, updated list of traits for this user.\n"
+            f"1. Retain the core identity.\n"
+            f"2. Incorporate specific preferences based on the feedback.\n"
+            f"3. Result must be a concise, comma-separated string.\n"
+            f"4. Result MUST contain LESS than 6 main traits.\n"
             f"Return ONLY the new traits string, no conversational filler."
         )
 
         try:
+            # 1. Generate new traits using LLM
             response = self.client.chat.completions.create(
                 messages=[
                     {"role": "system", "content": "You are a psychological profiling engine that evolves personality traits based on social feedback."},
@@ -44,33 +47,34 @@ class FeedbackAgent:
                 temperature=0.4
             )
             
-            # Clean up the response to ensure it's just the string
             evolved_traits = response.choices[0].message.content.strip()
-            print("Evolved traits == ", evolved_traits)
-            return evolved_traits
+            print(f"Old: {current_traits} -> New: {evolved_traits}")
 
-        except Exception as e:
-            print(f"Error evolving traits: {e}")
-            return current_traits # Fallback to original traits on error
+            # 2. UPDATE THE DATABASE
+            # We assume your database column is named 'Traits'
+            payload = {"current_traits": evolved_traits}
+
+            result = self.db_manager.update_traits(user_id, payload)
         
 
-if __name__ == "__main__":
-    # 1. Setup initial state
-    agent = FeedbackAgent()
-    old_traits = "Software Engineer, Introverted, Loves Coffee, Calm, Analytical"
-    failed_match = "Alex"
-    reason = "Alex was extremely loud, hyper-active, and didn't stop talking about extreme sports."
+            if result:
+                print(f"Successfully updated database for {user_id}")
+                return evolved_traits
+            else:
+                print("Database update failed (no result returned).")
+                return current_traits
 
-    print(f"DEBUG: Original Traits -> {old_traits}")
+        except Exception as e:
+            print(f"Error in FeedbackAgent: {e}")
+            return current_traits
+
+if __name__ == "__main__":
+    # Test block
+    agent = FeedbackAgent()
+    # Replace with a real ID from your Supabase to test
+    test_id = "2135d298-ad74-4ac0-ab920-00c08d36e568" 
+    old = "Introverted, Creative, Analytical"
+    match = "Alex"
+    msg = "Alex was too loud and hyper-active."
     
-    # 2. Run the evolution
-    updated_traits = agent.update_user_traits(old_traits, failed_match, reason)
-    
-    # 3. Show Results
-    print("-" * 30)
-    print(f"DEBUG: Evolved Traits  -> {updated_traits}")
-    print("-" * 30)
-    
-    if len(updated_traits.split(',')) > len(old_traits.split(',')):
-        print("Success: New preferences were likely added to the trait string.")
-        print("Updated traits : ", updated_traits)
+    agent.update_user_traits(test_id, old, match, msg)

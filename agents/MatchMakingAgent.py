@@ -1,6 +1,8 @@
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 import json
+import random
+import streamlit as st
 class MatchmakingAgent:
     def __init__(self):
         self.user_pool = [] # List of persona_packets
@@ -46,20 +48,34 @@ class MatchmakingAgent:
             
         return bonus
 
-    def get_top_matches(self, target_id, top_k=5):
+    import random
+
+    def get_top_matches(self, target_id, top_k=5, epsilon=0.1, threshold=0.5):
         target = next((u for u in self.user_pool if u['id'] == target_id), None)
         if not target: return []
 
+        # --- 1. DECIDE: EXPLORE VS EXPLOIT ---
+        # epsilon=0.1 means 10% chance to pick a random wildcard
+        if random.random() < epsilon:
+            st.info("🎲 EXPLORATION MODE: Picking a wildcard match to learn more about you.")
+            pool = [u for u in self.user_pool if u['id'] != target_id]
+            random.shuffle(pool)
+            
+            # Return wildcards in the same format as scored matches for UI consistency
+            return [{
+                "id": u['id'],
+                "name": u.get('name', 'Unknown'),
+                "final_score": 0.0, # Flag as exploration
+                "metrics": {"type": "Discovery"},
+                "summary": u.get('profile_summary', '')
+            } for u in pool[:top_k]]
+
+        # --- 2. EXPLOITATION MODE ---
+        st.success("🎯 EXPLOITATION MODE: Finding your highest-probability matches.")
         scored_matches = []
-
+        
         target_list = self._parse_embedding(target.get('embedding'))
-        target_vec = np.array(target_list).reshape(1, -1)
-        # target_vec = np.array(target['embedding'])
-
-        # if isinstance(target_vec, str):
-        #     print("Coming heereeeeeeeeeeeeeeee   ")
-        #     target_vec = json.loads(target_vec) # This "removes the quotes"
-        #     target_vec = np.array(target_vec).reshape(1, -1)        
+        target_vec = np.array(target_list).reshape(1, -1)      
 
         for candidate in self.user_pool:
             if candidate['id'] == target_id:
@@ -67,29 +83,22 @@ class MatchmakingAgent:
 
             candidate_vec = self._parse_embedding(candidate.get('embedding'))
             candidate_vec = np.array(candidate_vec).reshape(1, -1)
-
-            # candidate_vec = np.array(candidate['embedding'])
-
-            # if isinstance(target_vec, str):
-            #     print("Coming heereeeeeeeeeeeeeeee   ")
-            #     candidate_vec = json.loads(target_vec) # This "removes the quotes"
-            #     candidate_vec = np.array(target_vec).reshape(1, -1)   
-
-            # candidate_vec = np.array(candidate['embedding']).reshape(1, -1)
             
-            # 1. Cosine Similarity (The "Vibe" Vector)
+            # Calculate Cosine Similarity
             cos_sim = float(cosine_similarity(target_vec, candidate_vec)[0][0])
             
-            # 2. Age Factor
+            # --- 3. APPLY THRESHOLD BIAS ---
+            # If the vibe is below our threshold, we don't even consider them
+            if cos_sim < threshold:
+                continue
+
+            # Scores from your existing logic
             age_score = self._calculate_age_score(target.get('age', 0), candidate.get('age', 0))
-            
-            # 3. Trait Factor
             trait_bonus = self._calculate_trait_bonus(target.get('traits', ''), candidate.get('traits', ''))
 
-            # 4. Final Weighted Score
-            # Weights: 70% Vibe, 20% Age, 10% Traits
+            # Final Weighted Score (70/20/10)
             final_score = (cos_sim * 0.7) + (age_score * 0.2) + (trait_bonus)
-            final_score = min(1.0, final_score) # Cap at 1.0
+            final_score = min(1.0, final_score)
 
             scored_matches.append({
                 "id": candidate['id'],
@@ -99,7 +108,7 @@ class MatchmakingAgent:
                     "vibe_similarity": round(cos_sim, 4),
                     "age_alignment": age_score
                 },
-                "summary": candidate['profile_summary']
+                "summary": candidate.get('profile_summary', '')
             })
 
         # Sort by final score descending

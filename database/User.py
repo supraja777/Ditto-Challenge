@@ -48,6 +48,62 @@ class User:
                 cur.close()
                 conn.close()
 
+    def update_traits(self, user_id, payload):
+        """
+        Updates user traits and summary in the database using psycopg2.
+        Payload should look like: {"current_traits": ["A", "B"], "profile_summary": "..."}
+        """
+        conn = None
+        try:
+            # 1. Build the SET clause dynamically based on the payload keys
+            # This converts {"name": "val"} into "name = %s"
+            set_clause = ", ".join([f"{key} = %s" for key in payload.keys()])
+            query = f"UPDATE users SET {set_clause} WHERE id = %s;"
+    
+            values = list(payload.values())
+            values.append(user_id)
+            
+            # 3. Construct the full SQL query
+            query = f"UPDATE users SET {set_clause} WHERE id = %s;"
+            
+            conn = psycopg2.connect(self.db_url)
+            cur = conn.cursor()
+            
+            # 4. Execute safely using parameterized queries
+            cur.execute(query, tuple(values))
+            conn.commit()
+            
+            print(f"✅ Successfully updated columns: {list(payload.keys())}")
+            return True
+
+        except Exception as e:
+            if conn:
+                conn.rollback()
+            print(f"❌ Database Update Error: {e}")
+            return False
+        finally:
+            if conn:
+                cur.close()
+                conn.close()
+
+    
+ 
+        
+    def update_user_traits(self, user_id, new_traits, new_summary):
+        """
+        Updates the traits and summary for a specific user in Supabase.
+        """
+        try:
+            data = {
+                "Traits": new_traits,
+                "Summary": new_summary
+            }
+            response = self.supabase.table("users").update(data).eq("ID", user_id).execute()
+            return response
+        except Exception as e:
+            print(f"Error updating database: {e}")
+            return None
+
     def add_data(self, data_object):
         """
         Receives a dictionary and inserts it into the 'users' table.

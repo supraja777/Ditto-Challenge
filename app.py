@@ -107,50 +107,50 @@ if st.session_state.final_matches:
             with st.expander("Read Date Transcript"):
                 st.text(match['transcript'])
 
-# --- Independent Feedback Section ---
-# --- Independent Feedback Section ---
-st.divider()
-st.header("🔄 Manual Date Feedback")
-st.info("Update User B's traits based on feedback given by User A.")
+# # --- Independent Feedback Section ---
+# # --- Independent Feedback Section ---
+# st.divider()
+# st.header("🔄 Manual Date Feedback")
+# st.info("Update User B's traits based on feedback given by User A.")
 
-# Load fresh data from Supabase into the session state
-load_users()
-from agents.FeedbackAgent import FeedbackAgent
-feedback_agent = FeedbackAgent()
+# # Load fresh data from Supabase into the session state
+# from agents.FeedbackAgent import FeedbackAgent
+# feedback_agent = FeedbackAgent()
 
-if "all_users" in st.session_state:
-    # Creating a list of names and a map to get the full user object
-    user_names = [u['name'] for u in st.session_state.all_users]
-    user_map = {u['name']: u for u in st.session_state.all_users}
+# if "all_users" in st.session_state:
+#     # Creating a list of names and a map to get the full user object
+#     user_names = [u['name'] for u in st.session_state.all_users]
+#     user_map = {u['name']: u for u in st.session_state.all_users}
 
-    with st.form("manual_feedback_form", clear_on_submit=True):
-        # 1. Feedback Provider (User A)
-        person_a_name = st.selectbox("Feedback Provider (User A)", options=user_names)
+#     with st.form("manual_feedback_form", clear_on_submit=True):
+#         # 1. Feedback Provider (User A)
+#         person_a_name = st.selectbox("Feedback Provider (User A)", options=user_names)
         
-        # 2. Person being Reviewed (User B) - This is the person who will be UPDATED
-        remaining_names = [n for n in user_names if n != person_a_name]
-        match_name = st.selectbox("Person being Reviewed (User B)", options=remaining_names)
+#         # 2. Person being Reviewed (User B) - This is the person who will be UPDATED
+#         remaining_names = [n for n in user_names if n != person_a_name]
+#         match_name = st.selectbox("Person being Reviewed (User B)", options=remaining_names)
         
-        # 3. The feedback content
-        feedback_reason = st.text_area(f"What did {person_a_name} say about {match_name}?")
+#         # 3. The feedback content
+#         feedback_reason = st.text_area(f"What did {person_a_name} say about {match_name}?")
 
-        submit_btn = st.form_submit_button("Update User B's Traits")
+#         submit_btn = st.form_submit_button("Update User B's Traits")
 
-    if submit_btn:
-        if not feedback_reason.strip():
-            st.error("Please provide feedback text before updating.")
-        else:
-            # We target User B (match_name) for the update
-            user_b_to_update = user_map[match_name]
+#     if submit_btn:
+#         if not feedback_reason.strip():
+#             st.error("Please provide feedback text before updating.")
+#         else:
+#             # We target User B (match_name) for the update
+#             user_b_to_update = user_map[match_name]
             
-            with st.spinner(f"Updating traits for {match_name}..."):
-                # Call your function targeting User B's current traits
-                new_traits = feedback_agent.update_user_traits(
-                    current_traits=user_b_to_update.get('traits'),
-                    match_name=person_a_name, # User A is the 'match' in this context
-                    feedback_reason=feedback_reason
-                )
+#             with st.spinner(f"Updating traits for {match_name}..."):
+#                 # Call your function targeting User B's current traits
+#                 new_traits = feedback_agent.update_user_traits(
+#                     user_id = user_b_to_update.get('id'),
+#                     current_traits=user_b_to_update.get('current_traits'),
+#                     match_name=person_a_name, # User A is the 'match' in this context
+#                     feedback_reason=feedback_reason
+#                 )
             
-            st.success(f"Success! {match_name}'s traits have been evolved.")
-            # This triggers a rerun so the 'load_users()' at the top 
-            # fetches the new traits and updates the dropdowns immediately
+#             st.success(f"Success! {match_name}'s traits have been evolved.")
+#             # This triggers a rerun so the 'load_users()' at the top 
+#             # fetches the new traits and updates the dropdowns immediately
