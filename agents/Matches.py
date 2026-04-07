@@ -89,7 +89,9 @@ class Matches:
                 final_pairings.append({
                     "user_a": user_a,
                     "user_b": best_partner_profile,
-                    "chemistry_score": best_sim_score,
+                    "user_a_id": user_a['id'],
+                    "user_b_id": best_partner_profile['id'],
+                    "score": best_sim_score,
                     "critique": best_result_packet['critique'],
                     "transcript": best_result_packet['transcript']
                 })
@@ -103,6 +105,7 @@ class Matches:
             else:
                 # If simulation fails for some reason, remove User A to prevent infinite loop
                 available_ids.remove(uid_a)
+            return final_pairings
 
         # 5. Handle the "Odd Person Out"
         if len(available_ids) == 1:

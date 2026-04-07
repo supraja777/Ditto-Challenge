@@ -6,6 +6,7 @@ import streamlit as st
 from sklearn.metrics.pairwise import cosine_similarity
 from sentence_transformers import SentenceTransformer
 from dotenv import load_dotenv
+from database.Config import Config
 
 load_dotenv()
 
@@ -14,6 +15,7 @@ class MatchmakingAgent:
         self.user_pool = [] 
         # Load model once during init to save memory and time
         self.model = SentenceTransformer('all-MiniLM-L6-v2')
+        self.config_manager = Config()
 
     def get_embedding(self, text):
         """Generates a 384-dimensional vector locally."""
@@ -34,53 +36,63 @@ class MatchmakingAgent:
         return float(cosine_similarity(a, b)[0][0])
 
     def calculate_rich_score(self, user_a, user_b):
-        """The 7-factor Rich Computation logic."""
+       
+        cfg = self.config_manager.load_all_thresholds() 
+
+        w_vibe = cfg.get('weight_vibe', 0.40)
+        w_traits = cfg.get('weight_traits', 0.15)
+        w_intellect = cfg.get('weight_intellect', 0.15)
+        w_age = cfg.get('weight_age', 0.10)
+        e_bonus_val = cfg.get('social_energy_bonus', 0.05)
+        h_bonus_unit = cfg.get('hobby_bonus_unit', 0.02)
+
         # --- LAYER 1: HARD FILTERS ---
-        # Fixed: Check for dealbreakers in traits (ensure case-insensitive)
         a_dealbreakers = [d.lower() for d in user_a.get('dealbreakers', [])]
         b_traits = [t.lower() for t in user_b.get('current_traits', [])]
         
+        # If a hard filter is hit, return 0s immediately
         if any(trait in a_dealbreakers for trait in b_traits):
-            return 0, 0, 0
+            return 0.0, 0.0, 0.0
         
         if user_a.get('intent') != user_b.get('intent'):
-            return 0, 0, 0 
+            return 0.0, 0.0, 0.0 
 
-        # --- LAYER 2: VECTOR CALCULATIONS (The "Vibe") ---
+        # --- LAYER 2: VECTOR CALCULATIONS ---
+        # Similarity between the profile summaries
         vibe_sim = self.get_cosine_similarity(user_a.get('embedding'), user_b.get('embedding'))
+        # Similarity between the trait lists
         trait_sim = self.get_cosine_similarity(user_a.get('trait_embedding'), user_b.get('trait_embedding'))
 
         # --- LAYER 3: HEURISTIC BONUSES ---
         
-        # 1. Social Energy (Targeting a "Balance")
+        # 1. Social Energy (Balance Logic)
         energy_gap = abs(user_a.get('social_energy', 5) - user_b.get('social_energy', 5))
-        energy_bonus = 0.05 if 3 <= energy_gap <= 6 else 0
+        energy_bonus = e_bonus_val if 3 <= energy_gap <= 6 else 0
         
-        # 2. Intellectual Alignment
+        # 2. Intellectual Alignment (Live Embedding comparison)
         intellect_sim = self.get_cosine_similarity(
             self.get_embedding(user_a.get('intellectual_focus', '')),
             self.get_embedding(user_b.get('intellectual_focus', ''))
         )
 
         # 3. Hobby Overlap
-        a_hobbies = set(user_a.get('hobbies', []))
-        b_hobbies = set(user_b.get('hobbies', []))
-        shared_hobbies = a_hobbies & b_hobbies
-        hobby_bonus = len(shared_hobbies) * 0.02
+        shared_hobbies = set(user_a.get('hobbies', [])) & set(user_b.get('hobbies', []))
+        hobby_bonus = len(shared_hobbies) * h_bonus_unit
 
-        # 4. Age Alignment (Using your helper)
+        # 4. Age Alignment
         age_score = self._calculate_age_score(user_a.get('age', 0), user_b.get('age', 0))
 
         # --- LAYER 4: THE FINAL AGGREGATION ---
         final_score = (
-            (vibe_sim * 0.40) + 
-            (trait_sim * 0.15) + 
-            (intellect_sim * 0.15) + 
-            (age_score * 0.10) +
+            (vibe_sim * w_vibe) + 
+            (trait_sim * w_traits) + 
+            (intellect_sim * w_intellect) + 
+            (age_score * w_age) +
             (energy_bonus) + 
             (hobby_bonus)
         )
         
+        # Return the score, the vibe similarity, and age score for the UI/Metrics
         return min(1.0, final_score), vibe_sim, age_score
 
     def _parse_embedding(self, embedding_data):
