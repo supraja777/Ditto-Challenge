@@ -3,9 +3,24 @@ from sklearn.metrics.pairwise import cosine_similarity
 import json
 import random
 import streamlit as st
+from sentence_transformers import SentenceTransformer
+from dotenv import load_dotenv
+load_dotenv()
 class MatchmakingAgent:
     def __init__(self):
         self.user_pool = [] # List of persona_packets
+
+    def get_embedding(self, text):
+        """
+        Generates a 384-dimensional vector locally.
+        """
+        model = SentenceTransformer('all-MiniLM-L6-v2')
+        if not text:
+            return np.zeros(384)
+        
+        # This runs on your CPU/GPU instantly
+        embedding = model.encode(text)
+        return embedding
 
     def _parse_embedding(self, embedding_data):
         """
@@ -29,24 +44,37 @@ class MatchmakingAgent:
         if diff <= 5: return 1.0
         if diff <= 10: return 0.7
         return 0.3
-
+    
     def _calculate_trait_bonus(self, traits_a, traits_b):
         """
-        Simple heuristic: Check for specific complementary or 
-        identical traits that historically work well.
+        Semantic Trait Bonus: Compares the vector distance between 
+        two sets of traits using their own embeddings.
         """
-        bonus = 0
-        t1, t2 = traits_a.lower(), traits_b.lower()
+        if not traits_a or not traits_b:
+            print("No traits?")
+            return 0.0
+
+        # 1. Generate Embeddings for the raw trait strings
+        # (Assuming you have a self.get_embedding helper)
+        vec_a = self.get_embedding(traits_a)
+        vec_b = self.get_embedding(traits_b)
+
+        # 2. Calculate Similarity
+        # Reshape for sklearn if necessary
+        vec_a = np.array(vec_a).reshape(1, -1)
+        vec_b = np.array(vec_b).reshape(1, -1)
         
-        # Example: Introvert/Extrovert balance
-        if ("introvert" in t1 and "extrovert" in t2) or ("extrovert" in t1 and "introvert" in t2):
-            bonus += 0.05
+        semantic_sim = float(cosine_similarity(vec_a, vec_b)[0][0])
+
+        # 3. Apply a Scaling Factor
+        # We don't want the bonus to be as big as the main score.
+        # A 0.10 max bonus is usually a good 'nudge'.
+        bonus = semantic_sim * 0.10
+
+        print("Trait bonus --", bonus)
         
-        # Example: Shared High Openness
-        if "creative" in t1 and "creative" in t2:
-            bonus += 0.05
-            
-        return bonus
+        return round(bonus, 4)
+
 
     import random
 
@@ -94,7 +122,7 @@ class MatchmakingAgent:
 
             # Scores from your existing logic
             age_score = self._calculate_age_score(target.get('age', 0), candidate.get('age', 0))
-            trait_bonus = self._calculate_trait_bonus(target.get('traits', ''), candidate.get('traits', ''))
+            trait_bonus = self._calculate_trait_bonus(target.get('current_traits', ''), candidate.get('current_traits', ''))
 
             # Final Weighted Score (70/20/10)
             final_score = (cos_sim * 0.7) + (age_score * 0.2) + (trait_bonus)
