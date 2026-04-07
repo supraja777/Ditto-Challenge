@@ -49,7 +49,7 @@ with col_btn1:
    
             # 2. Select and rename columns to match your UI needs
             # Mapping database keys to display names
-            df_display = df[['name', 'age', 'current_traits', 'profile_summary']]
+            df_display = df[['name', 'age', 'traits', 'profile_summary']]
 
             # 3. Display using st.dataframe with custom widths
             st.dataframe(
@@ -92,7 +92,7 @@ if st.session_state.final_matches:
             
             with col_a:
                 st.subheader(match['user_a']['name'])
-                st.write(f"Traits: *{match['user_a']['current_traits']}*")
+                st.write(f"Traits: *{match['user_a']['traits']}*")
             
             with col_heart:
                 st.markdown("<h2 style='text-align: center;'>❤️</h2>", unsafe_allow_html=True)
@@ -101,7 +101,7 @@ if st.session_state.final_matches:
             
             with col_b:
                 st.subheader(match['user_b']['name'])
-                st.write(f"Traits: *{match['user_b']['current_traits']}*")
+                st.write(f"Traits: *{match['user_b']['traits']}*")
             
             st.success(f"**Agent Critique:** {match['critique']}")
             with st.expander("Read Date Transcript"):

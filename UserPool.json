@@ -3,80 +3,110 @@
     "id": "U01",
     "name": "Jordan",
     "age": 25,
-    "current_traits": "Introverted, Creative, Analytical",
-    "profile_summary": "A digital artist who finds beauty in technical constraints. Jordan enjoys quiet environments and deep, one-on-one conversations about the future of design.",
-    "embedding": [0.12, -0.05, 0.88, 0.0, 0.01]
+    "traits": ["Introverted", "Creative", "Analytical"],
+    "social_energy": 2,
+    "intent": "Serious",
+    "intellectual_focus": "Design & Technology",
+    "dealbreakers": ["Loud Environments", "Superficiality"],
+    "hobbies": ["Digital Art", "UI/UX Design", "Coding"]
   },
   {
     "id": "U02",
     "name": "Casey",
     "age": 28,
-    "current_traits": "High-Energy, Disciplined, Outgoing",
-    "profile_summary": "A dedicated marathon runner and biohacker. Casey values physical optimization, early mornings, and people who have the drive to push their limits.",
-    "embedding": [-0.45, 0.77, 0.12, 0.0, -0.09]
+    "traits": ["High-Energy", "Disciplined", "Outgoing"],
+    "social_energy": 9,
+    "intent": "Serious",
+    "intellectual_focus": "Health Science",
+    "dealbreakers": ["Smoking", "Laziness"],
+    "hobbies": ["Running", "Biohacking", "Meal Prep"]
   },
   {
     "id": "U03",
     "name": "Alex",
     "age": 34,
-    "current_traits": "Patient, Sophisticated, Observant",
-    "profile_summary": "An antique restorer with a passion for jazz history. Alex appreciates craftsmanship, slow living, and the stories behind old objects.",
-    "embedding": [0.33, 0.11, -0.22, 0.0, 0.55]
+    "traits": ["Patient", "Sophisticated", "Observant"],
+    "social_energy": 4,
+    "intent": "Serious",
+    "intellectual_focus": "History & Arts",
+    "dealbreakers": ["Fast Food", "Modern Minimalism"],
+    "hobbies": ["Restoration", "Jazz", "Vinyl Collecting"]
   },
   {
     "id": "U04",
     "name": "Sam",
     "age": 22,
-    "current_traits": "Extroverted, Rebellious, Spontaneous",
-    "profile_summary": "A street artist and skater deeply embedded in urban culture. Sam lives for the moment, values authenticity, and dislikes rigid corporate structures.",
-    "embedding": [-0.88, -0.12, 0.44, 0.0, -0.31]
+    "traits": ["Extroverted", "Rebellious", "Spontaneous"],
+    "social_energy": 8,
+    "intent": "Exploring",
+    "intellectual_focus": "Sociology",
+    "dealbreakers": ["Corporate Jobs", "Early Curfews"],
+    "hobbies": ["Skating", "Graffiti", "Urban Exploration"]
   },
   {
     "id": "U05",
     "name": "Taylor",
     "age": 30,
-    "current_traits": "Nurturing, Calm, Pragmatic",
-    "profile_summary": "A sustainability advocate who finds peace in gardening and baking. Taylor seeks a partner who values family, nature, and a stable, cozy home life.",
-    "embedding": [0.05, 0.99, -0.01, 0.0, 0.12]
+    "traits": ["Nurturing", "Calm", "Pragmatic"],
+    "social_energy": 5,
+    "intent": "Serious",
+    "intellectual_focus": "Environmental Science",
+    "dealbreakers": ["Wastefulness", "Travel Obsession"],
+    "hobbies": ["Gardening", "Baking", "Composting"]
   },
   {
     "id": "U06",
     "name": "Morgan",
     "age": 27,
-    "current_traits": "Analytical, Competitive, Direct",
-    "profile_summary": "A stock trader and chess enthusiast. Morgan views life as a series of strategic moves and respects intelligence, ambition, and efficiency.",
-    "embedding": [0.66, -0.33, -0.11, 0.0, 0.08]
+    "traits": ["Analytical", "Competitive", "Direct"],
+    "social_energy": 6,
+    "intent": "Serious",
+    "intellectual_focus": "Finance & Game Theory",
+    "dealbreakers": ["Indecisiveness", "Emotional Volatility"],
+    "hobbies": ["Chess", "Trading", "Poker"]
   },
   {
     "id": "U07",
     "name": "Riley",
     "age": 31,
-    "current_traits": "Adventurous, Observant, Calm",
-    "profile_summary": "A scuba diver and travel photographer. Riley is at home in the ocean and seeks someone to explore the world with, valuing quiet confidence over loud talk.",
-    "embedding": [-0.11, 0.44, 0.88, 0.0, 0.22]
+    "traits": ["Adventurous", "Observant", "Calm"],
+    "social_energy": 4,
+    "intent": "Exploring",
+    "intellectual_focus": "Marine Biology",
+    "dealbreakers": ["Fear of Water", "Arrogance"],
+    "hobbies": ["Scuba Diving", "Photography", "Backpacking"]
   },
   {
     "id": "U08",
     "name": "Jamie",
     "age": 26,
-    "current_traits": "Passionate, Quirky, Imaginative",
-    "profile_summary": "A dedicated cosplayer and anime fan. Jamie is deeply creative, values niche communities, and looks for someone who isn't afraid to be a bit weird.",
-    "embedding": [-0.22, -0.55, 0.99, 0.0, -0.05]
+    "traits": ["Passionate", "Quirky", "Imaginative"],
+    "social_energy": 7,
+    "intent": "Serious",
+    "intellectual_focus": "Pop Culture",
+    "dealbreakers": ["Judgmental Attitudes", "Boring Hobbies"],
+    "hobbies": ["Cosplay", "Anime", "Convention Going"]
   },
   {
     "id": "U09",
     "name": "Skyler",
     "age": 35,
-    "current_traits": "Rugged, Independent, Stoic",
-    "profile_summary": "An outdoor survivalist and geologist. Skyler prefers mountain peaks to city streets and values resilience, silence, and practical skills.",
-    "embedding": [0.15, 0.25, -0.88, 0.0, 0.44]
+    "traits": ["Rugged", "Independent", "Stoic"],
+    "social_energy": 1,
+    "intent": "Serious",
+    "intellectual_focus": "Earth Sciences",
+    "dealbreakers": ["Addiction to Technology", "Complaining"],
+    "hobbies": ["Hiking", "Rock Hounding", "Woodworking"]
   },
   {
     "id": "U10",
     "name": "Charlie",
     "age": 29,
-    "current_traits": "Funny, Talkative, Social",
-    "profile_summary": "A stand-up comedian and podcast host. Charlie is the life of every party and values wit, social intelligence, and a good sense of humor.",
-    "embedding": [-0.99, 0.05, 0.11, 0.0, -0.12]
+    "traits": ["Funny", "Talkative", "Social"],
+    "social_energy": 10,
+    "intent": "Exploring",
+    "intellectual_focus": "Communications",
+    "dealbreakers": ["Silence", "Lack of Humor"],
+    "hobbies": ["Improv", "Podcasting", "People Watching"]
   }
 ]

@@ -37,11 +37,14 @@ class PersonaAgent:
 
     def create_embedding(self, user_data: dict):
         print(f"Processing persona for: {user_data.get('name')}")
+        traits = user_data.get('traits')
         persona_text = self._distill_persona(user_data)
         vector = self.embed_model.encode(persona_text).tolist()
+        trait_embeddings = self.embed_model.encode(traits).tolist()
 
         return {
             "id": user_data.get("id"),
+            "trait_embeddings": trait_embeddings,
             "profile_summary": persona_text,
             "embedding": vector
         }
