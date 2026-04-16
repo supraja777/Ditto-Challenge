@@ -6,6 +6,9 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
+from app_logging import setup_matchmaking_loggers
+system_log, ai_log = setup_matchmaking_loggers()
+
 # Initialize Groq Client
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 def get_agent_response(self_info, partner_name, history):
@@ -67,7 +70,7 @@ def judge_verdict(user_a, user_b, transcript):
     )
     return json.loads(response.choices[0].message.content)
 
-def date_simulation(user_a, user_b, rounds=3):
+def date_simulation(user_a, user_b, rounds=1):
     """The main entry point for simulating a pair."""
     print(f"--- Simulating: {user_a['user_name']} x {user_b['user_name']} ---")
     
@@ -85,5 +88,6 @@ def date_simulation(user_a, user_b, rounds=3):
         print(f"{user_b['user_name']}: {resp_b}")
 
     verdict = judge_verdict(user_a, user_b, transcript)
+    system_log.info(f"END_SIMULATION: {user_a['user_name']} vs {user_b['user_name']} - SUCCESS")
     print("What is the verdict ? ", verdict)
     return verdict["confidence_score"]

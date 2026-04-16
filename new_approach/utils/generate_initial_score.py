@@ -31,7 +31,7 @@ def generate_judge_score_matrix(users_file, config_file):
             # --- SIMULATION PLACEHOLDER ---
             # This is where your LangGraph Agents will eventually reside.
             # Currently setting score to 1 as requested.
-            simulated_judge_score = date_simulation(users[i], users[j], 3) 
+            simulated_judge_score = date_simulation(users[i], users[j], 1) 
             
             # Log the action (Simulating AI reasoning logs)
             # print(f"[Simulating] {user_a} vs {user_b} | Score: {simulated_judge_score}")
