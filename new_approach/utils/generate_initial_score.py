@@ -1,7 +1,8 @@
 import json
-
 import numpy as np
 import pandas as pd
+import streamlit as st  # Added Streamlit import
+import time
 
 from utils.Date_Simulation import date_simulation
 
@@ -14,33 +15,36 @@ def generate_judge_score_matrix(users_file, config_file):
 
     n = len(users)
     names = [u['user_name'] for u in users]
-    
-    # Initialize the 10x10 matrix
-    # We use -1.0 for the diagonal to prevent self-matching
     judge_matrix = np.full((n, n), -1.0)
 
-    print(f"Initializing Full Mesh Simulation for {n} users...")
-    print(f"Targeting {config['matching_logic']['num_conversation_rounds']} rounds per simulation.")
+    st.info(f"🚀 Initializing Full Mesh Simulation for **{n} users**...")
+    
+    # Using st.status to create a clean, collapsible log
+    with st.status("Running AI Date Simulations...", expanded=True) as status:
+        total_sims = (n * (n - 1)) // 2
+        count = 0
+        progress_bar = st.progress(0)
 
-    # Iterate through unique pairs only (Upper Triangle)
-    for i in range(n):
-        for j in range(i + 1, n):
-            user_a = users[i]['user_name']
-            user_b = users[j]['user_name']
-            
-            # --- SIMULATION PLACEHOLDER ---
-            # This is where your LangGraph Agents will eventually reside.
-            # Currently setting score to 1 as requested.
-            simulated_judge_score = date_simulation(users[i], users[j], 1) 
-            
-            # Log the action (Simulating AI reasoning logs)
-            # print(f"[Simulating] {user_a} vs {user_b} | Score: {simulated_judge_score}")
+        for i in range(n):
+            for j in range(i + 1, n):
+                user_a = users[i]['user_name']
+                user_b = users[j]['user_name']
+                
+                # Update UI text
+                st.write(f"🎭 Simulating: **{user_a}** & **{user_b}**")
+                
+                # Execute simulation
+                simulated_judge_score = date_simulation(users[i], users[j], 1) 
+                
+                judge_matrix[i][j] = simulated_judge_score
+                judge_matrix[j][i] = simulated_judge_score
+                
+                # Update progress
+                count += 1
+                progress_bar.progress(count / total_sims)
+        
+        status.update(label="✅ Simulation Complete!", state="complete", expanded=False)
 
-            # Populate symmetrically
-            judge_matrix[i][j] = simulated_judge_score
-            judge_matrix[j][i] = simulated_judge_score
-
-    # Convert to DataFrame for a clear labeled view
     df_judge = pd.DataFrame(judge_matrix, index=names, columns=names)
     return df_judge
 
@@ -64,19 +68,24 @@ def generate_labeled_matrix(users_file, config_file):
     weights = config['weights']
     c = config['constraints']
 
+    st.write("🧪 Calculating Math/Embedding Scores...")
+    
+    # Mini-progress bar for the math matrix
+    math_progress = st.progress(0)
+
     for i in range(n):
         for j in range(n):
             if i == j:
-                matrix[i][j] = -1.0  # Self-match penalty
+                matrix[i][j] = -1.0 
                 continue
             
             user_a, user_b = users[i], users[j]
 
-            # 1. Deal Breakers (Hard Constraint)
+            # 1. Deal Breakers
             a_breakers = set(user_a.get('deal_breakers', []))
             b_traits = set(user_b.get('traits', []))
             if not a_breakers.isdisjoint(b_traits):
-                matrix[i][j] = -10.0 # Extreme penalty for matching
+                matrix[i][j] = -10.0 
                 continue
 
             # 2. Embedding similarities
@@ -103,7 +112,10 @@ def generate_labeled_matrix(users_file, config_file):
                 score -= c['penalty_for_intent_mismatch']
 
             matrix[i][j] = round(score + config['embedding_config']['bias'], 3)
+        
+        # Update math progress bar
+        math_progress.progress((i + 1) / n)
 
-    # Create a Pandas DataFrame for beautiful printing
+    st.success("✅ Mathematical Matrix Compiled.")
     df = pd.DataFrame(matrix, index=names, columns=names)
     return df
