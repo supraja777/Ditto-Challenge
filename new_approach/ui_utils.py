@@ -1,9 +1,11 @@
+import os
+
 import pandas as pd
 import streamlit as st
 import time
 from streamlit_extras.let_it_rain import rain
 from utils.generate_optimized_matches import generate_optimized_pairs
-
+OUTPUT_DIR = "outputs"
 def push_results_util():
     with st.status("🚀 Dispatching Match Results...", expanded=True) as status:
         st.write("Fetching optimized pairs from matches_score_matrix.csv...")
@@ -11,6 +13,9 @@ def push_results_util():
         
         # Call your existing logic
         pairs = generate_optimized_pairs() 
+        output_file = os.path.join(OUTPUT_DIR, "final_match_pairs.csv")
+        pairs_df = pd.DataFrame(pairs)
+        pairs_df.to_csv(output_file, index=False)
         
         st.write("Syncing results to User Notification Dispatcher...")
         time.sleep(1)

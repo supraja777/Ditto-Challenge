@@ -1,17 +1,65 @@
+import os
+
+import pandas as pd
 import streamlit as st
 import time
 
+from feedback import render_feedback_ui, save_feedback
 from utils.generate_confidence_matrix import generate_confidence_matrix
 from utils.generate_optimized_matches import generate_optimized_pairs
 from ui_utils import push_results_util
+
+MATCHES_FILE = os.path.join("outputs", "final_match_pairs.csv")
+FEEDBACK_FILE = os.path.join("outputs", "raw_feedback_collection.csv")
 
 # --- MOCK FUNCTIONS (Placeholders for your Agents) ---
 
 def harvest_feedback():
     st.toast("Running: harvest_feedback()...")
-    print("EXECUTE: harvest_feedback()")
-    time.sleep(1)
-    st.success("✅ Feedback Harvested and Traits Updated.")
+    st.session_state.show_feedback_ui = True
+
+    if st.session_state.get("show_feedback_ui", False):
+        st.title("Thursday: Feedback Harvester")
+        st.markdown("### 📝 Post-Date Debrief")
+        st.write("Review the weekly matches and record qualitative feedback for trait evolution.")
+
+        if not os.path.exists(MATCHES_FILE):
+            st.error("No match pairs found. Please run the Wednesday 'Push Results' protocol first.")
+            return
+
+        # Load the pairs
+        df_matches = pd.read_csv(MATCHES_FILE)
+
+        # UI for the match list
+        for index, row in df_matches.iterrows():
+            user_a = row['user_a']
+            user_b = row['user_b']
+            score = row['confidence_score']
+
+            # Create a "Match Card" using an expander
+            with st.expander(f"🤝 Match: {user_a} x {user_b} (Score: {score:.2f})"):
+                st.info(f"Record the interaction details for this pair to update their behavioral vectors.")
+                
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.subheader(f"From {user_b}")
+                    feedback_b = st.text_area(
+                        f"How did {user_b} perceive {user_a}?", 
+                        key=f"fb_{user_b}_{user_a}",
+                        placeholder="e.g., 'Arjun was very analytical but a bit too quiet...'"
+                    )
+                
+                with col2:
+                    st.subheader(f"From {user_a}")
+                    feedback_a = st.text_area(
+                        f"How did {user_a} perceive {user_b}?", 
+                        key=f"fb_{user_a}_{user_b}",
+                        placeholder=f"e.g., '{user_b} had great energy and matched my focus...'"
+                    )
+
+                if st.button(f"Save Feedback for {user_a} & {user_b}", key=f"btn_{index}"):
+                    save_feedback(user_a, user_b, feedback_a, feedback_b)
 
 def calibrate_thresholds():
     st.toast("Running: calibrate_thresholds()...")
