@@ -1,0 +1,7 @@
+If User A gives feedback: "They were too intense and didn't listen," your Agent can update User B's Traits.
+
+The system might add "High Energy" or "Dominant" to User B's trait list.
+
+The Trait Embedding is then recalculated.
+
+Result: User B will naturally start matching with people who actually like High Energy partners, or the system will adjust their "Social Energy" weight.
