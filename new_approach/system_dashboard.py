@@ -1,110 +1,71 @@
 import os
-
 import pandas as pd
 import streamlit as st
 import time
 
-from feedback import render_feedback_ui, save_feedback
+# Internal Imports
+from feedback import save_feedback
 from utils.generate_confidence_matrix import generate_confidence_matrix
 from utils.generate_optimized_matches import generate_optimized_pairs
 from ui_utils import push_results_util
 
+# Path Constants
 MATCHES_FILE = os.path.join("outputs", "final_match_pairs.csv")
-FEEDBACK_FILE = os.path.join("outputs", "raw_feedback_collection.csv")
+FEEDBACK_FILE = os.path.join("outputs", "user_feedback_collection.csv")
 
-# --- MOCK FUNCTIONS (Placeholders for your Agents) ---
+# --- PROTOCOL FUNCTIONS ---
 
-def harvest_feedback():
-    st.toast("Running: harvest_feedback()...")
+def harvest_feedback_trigger():
+    """Sets the state to show the feedback UI."""
     st.session_state.show_feedback_ui = True
-
-    if st.session_state.get("show_feedback_ui", False):
-        st.title("Thursday: Feedback Harvester")
-        st.markdown("### 📝 Post-Date Debrief")
-        st.write("Review the weekly matches and record qualitative feedback for trait evolution.")
-
-        if not os.path.exists(MATCHES_FILE):
-            st.error("No match pairs found. Please run the Wednesday 'Push Results' protocol first.")
-            return
-
-        # Load the pairs
-        df_matches = pd.read_csv(MATCHES_FILE)
-
-        # UI for the match list
-        for index, row in df_matches.iterrows():
-            user_a = row['user_a']
-            user_b = row['user_b']
-            score = row['confidence_score']
-
-            # Create a "Match Card" using an expander
-            with st.expander(f"🤝 Match: {user_a} x {user_b} (Score: {score:.2f})"):
-                st.info(f"Record the interaction details for this pair to update their behavioral vectors.")
-                
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    st.subheader(f"From {user_b}")
-                    feedback_b = st.text_area(
-                        f"How did {user_b} perceive {user_a}?", 
-                        key=f"fb_{user_b}_{user_a}",
-                        placeholder="e.g., 'Arjun was very analytical but a bit too quiet...'"
-                    )
-                
-                with col2:
-                    st.subheader(f"From {user_a}")
-                    feedback_a = st.text_area(
-                        f"How did {user_a} perceive {user_b}?", 
-                        key=f"fb_{user_a}_{user_b}",
-                        placeholder=f"e.g., '{user_b} had great energy and matched my focus...'"
-                    )
-
-                if st.button(f"Save Feedback for {user_a} & {user_b}", key=f"btn_{index}"):
-                    save_feedback(user_a, user_b, feedback_a, feedback_b)
+    st.toast("Feedback harvester activated!", icon="📝")
 
 def calibrate_thresholds():
     st.toast("Running: calibrate_thresholds()...")
-    print("EXECUTE: calibrate_thresholds()")
     time.sleep(1)
     st.success("✅ Global Thresholds Adjusted in DB.")
 
 def audit_system():
     st.toast("Running: audit_system()...")
-    print("EXECUTE: audit_system()")
     time.sleep(1)
     st.success("✅ Ghost Users Purged & Math Validated.")
 
 def run_simulations():
     st.toast("Running: run_simulations()...")
-    print("EXECUTE: run_simulations()")
     time.sleep(1)
     st.success("✅ Stagnation Simulations Complete.")
 
 def evolve_vectors():
     st.toast("Running: evolve_vectors()...")
-    print("EXECUTE: evolve_vectors()")
     time.sleep(1)
     st.success("✅ Embeddings Re-calculated for Active Pool.")
 
 def push_results():
-    st.toast("Pushing: Results!...")
-    print("EXECUTE: push_results()")
+    # Reset feedback UI when new results are pushed
+    st.session_state.show_feedback_ui = False
     push_results_util()
-    st.success("✅ Pushed Results. All the best!")
+    st.success("✅ Pushed Results to Dispatcher!")
 
 def execute_big_run():
-    st.toast("Executing: Results!...")
-    print("EXECUTE: Executning big ()")
+    # Generate the initial matrices
     generate_confidence_matrix()
-    st.success("✅ Pushed Results. All the best!")
+    st.success("✅ Tuesday Simulation & Matrix Generation Complete!")
 
 # --- UI LOGIC ---
 
 def render_heartbeat_ui():
+    st.set_page_config(page_title="Matchmaking Heartbeat", layout="wide")
     st.title("🔗 Core Matchmaking Heartbeat")
     
+    # Initialize Session States
+    if "selected_day" not in st.session_state:
+        st.session_state.selected_day = "Tuesday"
+    if "show_feedback_ui" not in st.session_state:
+        st.session_state.show_feedback_ui = False
+
     # Mapping days to their respective functions
     lifecycle = {
-        "Thursday": {"icon": "📝", "action": "Update User Traits", "func": harvest_feedback},
+        "Thursday": {"icon": "📝", "action": "Update User Traits", "func": harvest_feedback_trigger},
         "Friday": {"icon": "⚙️", "action": "Update Thresholds", "func": calibrate_thresholds},
         "Saturday": {"icon": "🛡️", "action": "Data Validation", "func": audit_system},
         "Sunday": {"icon": "🧪", "action": "Handle 'No Data'", "func": run_simulations},
@@ -117,13 +78,13 @@ def render_heartbeat_ui():
     cols = st.columns(7)
     days = list(lifecycle.keys())
     
-    if "selected_day" not in st.session_state:
-        st.session_state.selected_day = "Tuesday"
-
     for i, col in enumerate(cols):
         if col.button(days[i][:3], use_container_width=True, 
                       type="primary" if st.session_state.selected_day == days[i] else "secondary"):
             st.session_state.selected_day = days[i]
+            # Close feedback UI if we switch away from Thursday
+            if days[i] != "Thursday":
+                st.session_state.show_feedback_ui = False
 
     st.divider()
 
@@ -144,9 +105,33 @@ def render_heartbeat_ui():
         # 3. THE EXECUTION BUTTON
         button_label = f"▶️ Run {day} Protocol"
         if st.button(button_label, use_container_width=True):
-            # Dynamically call the function mapped to this day
             data['func']()
 
+        # --- THURSDAY PERSISTENCE LOGIC ---
+        if day == "Thursday" and st.session_state.get("show_feedback_ui", False):
+            st.divider()
+            st.subheader("📝 Record Qualitative Feedback")
+            
+            if not os.path.exists(MATCHES_FILE):
+                st.error("No match pairs found. Run Wednesday Protocol first.")
+            else:
+                df_matches = pd.read_csv(MATCHES_FILE)
+                for index, row in df_matches.iterrows():
+                    u_a, u_b, score = row['user_a'], row['user_b'], row['confidence_score']
+                    
+                    with st.expander(f"🤝 Match: {u_a} vs {u_b} (Score: {score:.2f})"):
+                        c1, c2 = st.columns(2)
+                        with c1:
+                            # Note: B gives feedback for A
+                            fb_for_a = st.text_area(f"What did {u_b} say about {u_a}?", key=f"fba_{index}")
+                        with c2:
+                            # Note: A gives feedback for B
+                            fb_for_b = st.text_area(f"What did {u_a} say about {u_b}?", key=f"fbb_{index}")
+                        
+                        if st.button(f"Confirm & Save Pair {index}", key=f"save_{index}"):
+                            save_feedback(u_a, u_b, fb_for_a, fb_for_b)
+
+    # Sidebar
     st.sidebar.header("System Status")
     st.sidebar.status("Database: Connected")
     st.sidebar.progress((days.index(day) + 1) / 7, text=f"Day {days.index(day) + 1} of 7")
