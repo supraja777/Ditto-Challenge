@@ -1,0 +1,95 @@
+1. Have 10 users in the db each user have details 
+    1. User name [Required]
+    2. Id - unique [UUID]
+    3. Triats - list of string - B
+    4. For each trait - an embedding -B
+    5. Age
+    14. Location
+    6. Personality - based on everything - A
+    7. Embedding vector of Personality - A
+    9. An embedding for traits - an average of all traits.
+    8. Social Energy
+    9. Intent - Casual, Serious
+    10. Hobbies 
+    11. Intellectual focus [Career stream]
+    12. Deal breakers
+    13. Updated at
+    15. MatchedWith [Can be null] [Rem are requied]
+    16. Photo
+    17. Introvert
+
+4. There will be config table which will contain:
+    1. top_k_matches: Number of top_k matches to extract.
+    2. Exploitation rate 
+    3. age_w
+    4. location_w
+    5. social_energy_w
+    6. intellectual_w
+    7. deal breakers
+    8. Weights for embedding vector [both should be of same size embedding vector weights ]
+    9. Bias for embedding vector
+    12. Threshold - below which match is rejected 
+    13. num_conversation_rounds
+    14. Target_matches
+
+5. Matches Info table.
+    1. UserA - Id
+    2. UserB - Id
+    3. Confidence - 
+    4. Reasoning - why this match is good
+    5. IsMatch: True / False
+    5. Feedback of User A for User B - Will be collected after date basically
+    6. Feedback of User B for User A
+
+2. We will bulk enter the user from excel - 
+    1. Upload from excel
+    2. Get details from the User - store it in usestate -> UserInfo 
+        1. Update - Personality & embedding [Monday]
+        2. Match Making [Tuesday]
+
+3. For match making. 
+    1. Extract all user's from the UserInfo.
+    2. For each user get top k best matches - based on age, traits, hobbies, intellectual focus, intent, location
+    3. For each of the user, simulate with the three other matches. -> Take the best 
+    5. Langgraph, For each user -> we will assign one agent, for each simulation one agent. So all agents will coordinate and give results
+    4. Save the info temporarily in userInfo - MatchedWith [We will not update in db!]
+
+4. For top_k matches: 
+    1. If exploitation: [Use existing data]
+        a. Then ----
+    2. If exploration then
+        b. 
+
+7. For simulating the match
+    1. One Agent will be UserA.
+    2. One Agent will be UserB.
+    3. One Judge
+    4. We will simulate for num_conversation_rounds.
+    5. Based on the conversation the judge should give confidence_score 
+    6. Take the match will maximum confidence_score
+
+8. Feedback after date
+    1. Save the feedback in matches table.
+        1. Introvert / Extrovert
+        2. Social Energy
+        3. Intent
+        4. Additional feedback - [To update traits]
+    2. Based on the feedbacks update the User traits for both the user.
+    3. Based on the traits we will get the traits embedding again.
+
+10. After the whole process we need to adjust all config values:
+    1. If number of matches > expected number of matches:
+        1. We can increase number of exploration that can be made.
+        2. Can decrease the threshold a bit [But how to decide how much?]
+        3. Adjust weights how?
+    2. If number of matches <= expected number of matches:
+        2. We need to decrease the number of explorations.
+        3. Increase the threshold. [By how much?]
+        4. Adjust weights, how?
+
+11 How do we evaluate each agent response?
+
+12. What to do if no data arrives i.e. no feedback?
+
+
+6. We will save all AI reasons in AI_reasoning_logs with time stamps and agent name and why it took the decision.

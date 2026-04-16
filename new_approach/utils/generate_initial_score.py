@@ -3,6 +3,8 @@ import json
 import numpy as np
 import pandas as pd
 
+from utils.Date_Simulation import date_simulation
+
 def generate_judge_score_matrix(users_file, config_file):
     # Load the two input files
     with open(users_file, 'r') as f:
@@ -29,7 +31,7 @@ def generate_judge_score_matrix(users_file, config_file):
             # --- SIMULATION PLACEHOLDER ---
             # This is where your LangGraph Agents will eventually reside.
             # Currently setting score to 1 as requested.
-            simulated_judge_score = 1.0 
+            simulated_judge_score = date_simulation(users[i], users[j], 3) 
             
             # Log the action (Simulating AI reasoning logs)
             # print(f"[Simulating] {user_a} vs {user_b} | Score: {simulated_judge_score}")

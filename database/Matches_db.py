@@ -100,3 +100,34 @@ class MatchesDB:
             if conn:
                 cur.close()
                 conn.close()
+                
+    def get_all_matches(self):
+        """
+        Retrieves all match records from the 'matches' table.
+        Returns a list of dictionaries.
+        """
+        query = "SELECT user_a_id, user_b_id, intent, compatibility, match_date FROM matches ORDER BY match_date DESC;"
+        
+        conn = None
+        try:
+            conn = psycopg2.connect(self.db_url)
+            # Use RealDictCursor to automatically get column names as keys
+            from psycopg2.extras import RealDictCursor
+            cur = conn.cursor(cursor_factory=RealDictCursor)
+            
+            cur.execute(query)
+            matches = cur.fetchall()
+            
+            # Convert list of RealDict objects to standard dicts
+            result = [dict(match) for match in matches]
+            
+            print(f"📂 Successfully retrieved {len(result)} matches from the database.")
+            return result
+
+        except Exception as e:
+            print(f"❌ Database Error while fetching matches: {e}")
+            return []
+        finally:
+            if conn:
+                cur.close()
+                conn.close()

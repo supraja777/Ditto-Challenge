@@ -3,6 +3,8 @@ import time
 
 from agents.Matches import Matches
 from database.Matches_db import MatchesDB
+from database.User import User
+from utility.PushResults import push_results_utility
 
 # --- MOCK FUNCTIONS (Placeholders for your Agents) ---
 
@@ -37,10 +39,14 @@ def evolve_vectors():
     st.success("✅ Embeddings Re-calculated for Active Pool.")
 
 def push_results():
-    st.toast("Running: execute_big_run()...")
-    print("EXECUTE: execute_big_run()")
-    time.sleep(1)
-    st.success("✅ Weekly Matches Generated.")
+    st.toast("Pushing: Results!...")
+    push_results_utility()
+
+
+# Assuming MatchesDB is in a file named database.py or defined above
+# from your_module import MatchesDB 
+
+
 
 def execute_big_run():
     st.toast("🔍 Orchestrating Exclusive Pairs...")

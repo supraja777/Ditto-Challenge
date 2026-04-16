@@ -141,3 +141,52 @@ class User:
             if conn:
                 cur.close()
                 conn.close()
+                
+    def get_user_by_id(self, user_id):
+        """
+        Retrieves a single user record by its UUID/ID.
+        Returns a dictionary if found, otherwise None.
+        """
+        query = """
+            SELECT 
+                id, name, age, traits, profile_summary, 
+                embedding, trait_embedding,
+                social_energy, intent, intellectual_focus, 
+                dealbreakers, hobbies
+            FROM users
+            WHERE id = %s;
+        """
+        
+        conn = None
+        try:
+            conn = psycopg2.connect(self.db_url)
+            cur = conn.cursor()
+            cur.execute(query, (user_id,))
+            row = cur.fetchone()
+            
+            if row:
+                return {
+                    "id": str(row[0]),
+                    "name": row[1],
+                    "age": row[2],
+                    "traits": row[3],
+                    "profile_summary": row[4],
+                    "embedding": row[5],
+                    "trait_embedding": row[6],
+                    "social_energy": row[7],
+                    "intent": row[8],
+                    "intellectual_focus": row[9],
+                    "dealbreakers": row[10],
+                    "hobbies": row[11]
+                }
+            else:
+                print(f"⚠️ User with ID {user_id} not found.")
+                return None
+
+        except Exception as e:
+            print(f"❌ Error fetching user by ID: {e}")
+            return None
+        finally:
+            if conn:
+                cur.close()
+                conn.close()
