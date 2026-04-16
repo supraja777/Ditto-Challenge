@@ -12,7 +12,9 @@
     "social_energy_w": 0.10,
     "intellectual_w": 0.20,
     "personality_embedding_w": 0.25,
-    "traits_embedding_w": 0.15
+    "traits_embedding_w": 0.15,
+    "w_normal": 0.5,
+    "w_judge": 0.5
   },
   "embedding_config": {
     "vector_size": 4,

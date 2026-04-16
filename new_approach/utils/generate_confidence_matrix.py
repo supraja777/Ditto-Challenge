@@ -14,16 +14,18 @@ OUTPUT_DIR = "outputs"
 if not os.path.exists(OUTPUT_DIR):
     os.makedirs(OUTPUT_DIR)
 
+with open('config.json', 'r') as f:
+    config = json.load(f)
+
 def save_matrix(df, prefix):
     """Saves a dataframe to the outputs folder with a timestamp."""
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"{prefix}_{timestamp}.csv"
+    filename = f"{prefix}.csv"
     filepath = os.path.join(OUTPUT_DIR, filename)
-    df.to_csv(filepath)
+    df.to_csv(filepath, index_label="")
     system_log.info(f"Matrix saved to {filepath}")
     return filepath
 
-if __name__ == "__main__":
+def generate_confidence_matrix():
     try:
         df_matrix = generate_labeled_matrix('dummy_user_details.json', 'config.json')
         judge_score = generate_judge_score_matrix('dummy_user_details.json', 'config.json')
@@ -51,5 +53,8 @@ if __name__ == "__main__":
 
         path_normal = save_matrix(df_matrix, "normal_score_matrix")
         path_judge = save_matrix(df_judge, "judge_score_matrix")
+
+        df_final = (df_matrix * config['weights']['w_normal']) + (df_judge * config['weights']['w_judge'])
+        path_final_matrix = save_matrix(df_final, "matches_score_matrix")
     except Exception as e:
         print(f"Error: {e}. Ensure JSON files are formatted correctly.")
