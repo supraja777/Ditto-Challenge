@@ -22,7 +22,7 @@ def harvest_feedback_trigger():
 
 def calibrate_thresholds():
     st.toast("Running: calibrate_thresholds()...")
-    time.sleep(1)
+    st.session_state.show_calibrate_ui = True
     st.success("✅ Global Thresholds Adjusted in DB.")
 
 def audit_system():
@@ -62,6 +62,8 @@ def render_heartbeat_ui():
         st.session_state.selected_day = "Tuesday"
     if "show_feedback_ui" not in st.session_state:
         st.session_state.show_feedback_ui = False
+    if "show_calibrate_ui" not in st.session_state:
+        st.session_state.show_calibrate_ui = False
 
     # Mapping days to their respective functions
     lifecycle = {
@@ -85,6 +87,8 @@ def render_heartbeat_ui():
             # Close feedback UI if we switch away from Thursday
             if days[i] != "Thursday":
                 st.session_state.show_feedback_ui = False
+            if days[i] != "Friday":
+                st.session_state.show_calibrate_ui = False
 
     st.divider()
 
@@ -106,6 +110,51 @@ def render_heartbeat_ui():
         button_label = f"▶️ Run {day} Protocol"
         if st.button(button_label, use_container_width=True):
             data['func']()
+
+        if day == "Friday" and st.session_state.get("show_calibrate_ui", False):
+            st.divider()
+            st.header("⚙️ Weekly Engine Calibration")
+            st.write("Analyze match performance and auto-adjust system weights.")
+
+            # 1. Fetch live metrics from Database
+            from utils.adjust_config_values import get_matchmaking_metrics
+            from utils.adjust_config_values import updating_config_values
+            
+            total_matches, successful_matches = get_matchmaking_metrics()
+            
+            # Display Metrics
+            c1, c2, c3 = st.columns(3)
+            with c1:
+                st.metric("Total Matches", total_matches)
+            with c2:
+                st.metric("Successful Matches", successful_matches)
+            with c3:
+                success_rate = (successful_matches / total_matches * 100) if total_matches > 0 else 0
+                st.metric("Success Rate", f"{success_rate:.1f}%")
+
+            # 2. Calibration Trigger
+            st.info("The system will adjust thresholds and weights based on the volume and success rate above.")
+            
+            # Use a target number from your current session or a default
+            target_goal = st.number_input("Target Number of Matches", min_value=1, value=5)
+
+            if st.button("🚀 Run Auto-Calibration"):
+                if total_matches == 0:
+                    st.warning("No matches found to analyze. Calibration skipped.")
+                else:
+                    with st.spinner("Adjusting engine parameters..."):
+                        new_config = updating_config_values(
+                            total_matches=total_matches,
+                            successful_matches=successful_matches,
+                            target_matches=target_goal
+                        )
+                        
+                        if new_config:
+                            st.success("✅ System Calibrated! config.json has been updated for next week.")
+                            
+                            # Optional: Show a preview of the new weights
+                            with st.expander("View Updated Weights"):
+                                st.json(new_config['weights'])
 
         # --- THURSDAY PERSISTENCE LOGIC ---
         if day == "Thursday" and st.session_state.get("show_feedback_ui", False):
