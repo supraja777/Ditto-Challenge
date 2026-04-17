@@ -6,6 +6,41 @@ url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 supabase: Client = create_client(url, key)
 
+def update_match_feedback(match_id, feedback_text, for_user_a=True, accepted=True):
+    """
+    Updates a specific match record with feedback and acceptance status.
+    
+    Args:
+        match_id (str): The UUID of the match record.
+        feedback_text (str): The feedback string provided by the AI/User.
+        for_user_a (bool): If True, updates 'feedback_for_a', else 'feedback_for_b'.
+        accepted (bool): The final acceptance state of the match.
+    """
+    try:
+        # Determine which column to update based on which user is giving feedback
+        feedback_column = "feedback_for_a" if for_user_a else "feedback_for_b"
+        
+        update_data = {
+            feedback_column: feedback_text,
+            "accepted": accepted
+        }
+
+        response = supabase.table("matches")\
+            .update(update_data)\
+            .eq("id", match_id)\
+            .execute()
+
+        if response.data:
+            print(f"✅ Match {match_id} updated successfully.")
+            return response.data
+        else:
+            print(f"⚠️ No match found with ID: {match_id}")
+            return None
+
+    except Exception as e:
+        print(f"❌ Error updating match feedback: {e}")
+        return None
+
 def upload_matches_to_supabase(final_pairs):
     """
     Accepts the list of pair dictionaries and uploads them to the 'matches' table.

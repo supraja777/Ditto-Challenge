@@ -112,24 +112,42 @@ def render_heartbeat_ui():
             st.divider()
             st.subheader("📝 Record Qualitative Feedback")
             
-            if not os.path.exists(MATCHES_FILE):
-                st.error("No match pairs found. Run Wednesday Protocol first.")
+            # 1. Fetch matches from Database instead of CSV
+            from db.matches_utility import update_match_feedback
+            from db.matches_user_utility import get_all_matches
+            matches = get_all_matches()
+
+            if not matches:
+                st.error("No matches found in the database. Run Wednesday Protocol first.")
             else:
-                df_matches = pd.read_csv(MATCHES_FILE)
-                for index, row in df_matches.iterrows():
-                    u_a, u_b, score = row['user_a'], row['user_b'], row['confidence_score']
+                for match in matches:
+                    # Extract variables from our helper function structure
+                    m_id = match['match_id']
+                    u_a_name = match['userNameA']
+                    u_b_name = match['userNameB']
+                    score = match['confidence_score']
                     
-                    with st.expander(f"🤝 Match: {u_a} vs {u_b} (Score: {score:.2f})"):
+                    with st.expander(f"🤝 Match: {u_a_name} vs {u_b_name} (Score: {score:.2f})"):
                         c1, c2 = st.columns(2)
+                        
                         with c1:
                             # Note: B gives feedback for A
-                            fb_for_a = st.text_area(f"What did {u_b} say about {u_a}?", key=f"fba_{index}")
+                            fb_for_a = st.text_area(f"What did {u_b_name} say about {u_a_name}?", key=f"fba_{m_id}")
                         with c2:
                             # Note: A gives feedback for B
-                            fb_for_b = st.text_area(f"What did {u_a} say about {u_b}?", key=f"fbb_{index}")
+                            fb_for_b = st.text_area(f"What did {u_a_name} say about {u_b_name}?", key=f"fbb_{m_id}")
                         
-                        if st.button(f"Confirm & Save Pair {index}", key=f"save_{index}"):
-                            save_feedback(u_a, u_b, fb_for_a, fb_for_b)
+                        # Added a checkbox to confirm if they actually liked each other
+                        accepted = st.checkbox("Was this date successful?", value=True, key=f"acc_{m_id}")
+
+                        if st.button(f"Save Feedback for {u_a_name} & {u_b_name}", key=f"btn_{m_id}"):
+                            # 2. Update DB for User A's column
+                            update_match_feedback(m_id, fb_for_a, for_user_a=True, accepted=accepted)
+                            
+                            # 3. Update DB for User B's column
+                            update_match_feedback(m_id, fb_for_b, for_user_a=False, accepted=accepted)
+                            
+                            st.success(f"✅ Feedback synced to Supabase for {u_a_name} & {u_b_name}!")
 
     # Sidebar
     st.sidebar.header("System Status")
