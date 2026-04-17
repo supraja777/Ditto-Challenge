@@ -1,25 +1,23 @@
+import ast
 import json
 import numpy as np
 import pandas as pd
-import streamlit as st  # Added Streamlit import
+import streamlit as st
 import time
 
 from utils.Date_Simulation import date_simulation
 
-def generate_judge_score_matrix(users_file, config_file):
-    # Load the two input files
-    with open(users_file, 'r') as f:
-        users = json.load(f)
+def generate_judge_score_matrix(users, config_file):
     with open(config_file, 'r') as f:
         config = json.load(f)
 
     n = len(users)
     names = [u['user_name'] for u in users]
-    judge_matrix = np.full((n, n), -1.0)
+    # Initialize with float type to avoid ufunc errors later
+    judge_matrix = np.full((n, n), -1.0, dtype=float)
 
     st.info(f"🚀 Initializing Full Mesh Simulation for **{n} users**...")
     
-    # Using st.status to create a clean, collapsible log
     with st.status("Running AI Date Simulations...", expanded=True) as status:
         total_sims = (n * (n - 1)) // 2
         count = 0
@@ -27,50 +25,64 @@ def generate_judge_score_matrix(users_file, config_file):
 
         for i in range(n):
             for j in range(i + 1, n):
-                user_a = users[i]['user_name']
-                user_b = users[j]['user_name']
+                user_a_name = users[i]['user_name']
+                user_b_name = users[j]['user_name']
                 
-                # Update UI text
-                st.write(f"🎭 Simulating: **{user_a}** & **{user_b}**")
+                st.write(f"🎭 Simulating: **{user_a_name}** & **{user_b_name}**")
                 
-                # Execute simulation
-                simulated_judge_score = date_simulation(users[i], users[j], 1) 
+                # Execute simulation - ensure result is cast to float
+                try:
+                    simulated_judge_score = float(date_simulation(users[i], users[j], 1))
+                except (ValueError, TypeError):
+                    simulated_judge_score = 0.0
                 
                 judge_matrix[i][j] = simulated_judge_score
                 judge_matrix[j][i] = simulated_judge_score
                 
-                # Update progress
                 count += 1
-                progress_bar.progress(count / total_sims)
+                progress_bar.progress(min(count / total_sims, 1.0))
         
         status.update(label="✅ Simulation Complete!", state="complete", expanded=False)
 
-    df_judge = pd.DataFrame(judge_matrix, index=names, columns=names)
-    return df_judge
+    return pd.DataFrame(judge_matrix, index=names, columns=names)
+
+def ensure_float_list(v):
+    """Converts string representation of lists into actual lists of floats."""
+    if isinstance(v, str):
+        try:
+            # Turns "[0.1, 0.2]" into [0.1, 0.2]
+            v = ast.literal_eval(v)
+        except (ValueError, SyntaxError):
+            return np.zeros(4) # Fallback to zero vector if parsing fails
+    return np.array(v, dtype=float)
 
 def cosine_similarity(v1, v2):
-    v1 = np.array(v1)
-    v2 = np.array(v2)
+    # CRITICAL: Parse strings into lists, then convert to numpy arrays
+    v1 = ensure_float_list(v1)
+    v2 = ensure_float_list(v2)
+    
     if np.all(v1 == 0) or np.all(v2 == 0):
         return 0.0
-    return np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
+    
+    norm = (np.linalg.norm(v1) * np.linalg.norm(v2))
+    if norm == 0:
+        return 0.0
+        
+    return float(np.dot(v1, v2) / norm)
 
-def generate_labeled_matrix(users_file, config_file):
-    with open(users_file, 'r') as f:
-        users = json.load(f)
+def generate_labeled_matrix(users, config_file):
     with open(config_file, 'r') as f:
         config = json.load(f)
 
     n = len(users)
     names = [u['user_name'] for u in users]
-    matrix = np.zeros((n, n))
+    matrix = np.zeros((n, n), dtype=float)
     
-    weights = config['weights']
-    c = config['constraints']
+    weights = config.get('weights', {})
+    c = config.get('constraints', {})
+    bias = config.get('embedding_config', {}).get('bias', 0.0)
 
     st.write("🧪 Calculating Math/Embedding Scores...")
-    
-    # Mini-progress bar for the math matrix
     math_progress = st.progress(0)
 
     for i in range(n):
@@ -81,41 +93,45 @@ def generate_labeled_matrix(users_file, config_file):
             
             user_a, user_b = users[i], users[j]
 
-            # 1. Deal Breakers
-            a_breakers = set(user_a.get('deal_breakers', []))
-            b_traits = set(user_b.get('traits', []))
+            # 1. Deal Breakers (disjoint returns True if no common elements)
+            a_breakers = set(user_a.get('deal_breakers') or [])
+            b_traits = set(user_b.get('traits') or [])
             if not a_breakers.isdisjoint(b_traits):
                 matrix[i][j] = -10.0 
                 continue
 
             # 2. Embedding similarities
-            pers_sim = cosine_similarity(user_a['personality_embedding'], user_b['personality_embedding'])
-            trait_sim = cosine_similarity(user_a['trait_embeddings'], user_b['trait_embeddings'])
+            pers_sim = cosine_similarity(user_a.get('personality_embedding', []), user_b.get('personality_embedding', []))
+            trait_sim = cosine_similarity(user_a.get('trait_embeddings', []), user_b.get('trait_embeddings', []))
 
-            # 3. Scalar Scoring
-            age_score = max(0, 1 - (abs(user_a['age'] - user_b['age']) / c['max_age_diff']))
-            loc_score = 1.0 if user_a['location'] == user_b['location'] else 0.0
-            energy_score = 1 - (abs(user_a['social_energy'] - user_b['social_energy']) / 10.0)
-            intel_score = 1.0 if user_a['intellectual_focus'] == user_b['intellectual_focus'] else 0.0
+            # 3. Scalar Scoring - with safety checks for missing config
+            max_age_diff = c.get('max_age_diff', 20)
+            age_diff = abs(float(user_a.get('age', 0)) - float(user_b.get('age', 0)))
+            age_score = max(0.0, 1.0 - (age_diff / max_age_diff))
+            
+            loc_score = 1.0 if user_a.get('location') == user_b.get('location') else 0.0
+            
+            energy_diff = abs(float(user_a.get('social_energy', 5)) - float(user_b.get('social_energy', 5)))
+            energy_score = 1.0 - (energy_diff / 10.0)
+            
+            intel_score = 1.0 if user_a.get('intellectual_focus') == user_b.get('intellectual_focus') else 0.0
 
-            # 4. Final Aggregation
+            # 4. Final Aggregation using float casting for weights
             score = (
-                (pers_sim * weights['personality_embedding_w']) +
-                (trait_sim * weights['traits_embedding_w']) +
-                (age_score * weights['age_w']) +
-                (loc_score * weights['location_w']) +
-                (energy_score * weights['social_energy_w']) +
-                (intel_score * weights['intellectual_w'])
+                (pers_sim * float(weights.get('personality_embedding_w', 0))) +
+                (trait_sim * float(weights.get('traits_embedding_w', 0))) +
+                (age_score * float(weights.get('age_w', 0))) +
+                (loc_score * float(weights.get('location_w', 0))) +
+                (energy_score * float(weights.get('social_energy_w', 0))) +
+                (intel_score * float(weights.get('intellectual_w', 0)))
             )
 
-            if user_a['intent'] != user_b['intent']:
-                score -= c['penalty_for_intent_mismatch']
+            if user_a.get('intent') != user_b.get('intent'):
+                score -= float(c.get('penalty_for_intent_mismatch', 0))
 
-            matrix[i][j] = round(score + config['embedding_config']['bias'], 3)
+            matrix[i][j] = round(score + float(bias), 3)
         
-        # Update math progress bar
         math_progress.progress((i + 1) / n)
 
     st.success("✅ Mathematical Matrix Compiled.")
-    df = pd.DataFrame(matrix, index=names, columns=names)
-    return df
+    return pd.DataFrame(matrix, index=names, columns=names)

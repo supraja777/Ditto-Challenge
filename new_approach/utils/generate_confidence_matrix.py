@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 
 from app_logging import setup_matchmaking_loggers
+from db.get_all_users import get_all_user_details
 from utils.generate_initial_score import generate_labeled_matrix
 from utils.generate_initial_score import generate_judge_score_matrix
 
@@ -21,14 +22,15 @@ def save_matrix(df, prefix):
     """Saves a dataframe to the outputs folder with a timestamp."""
     filename = f"{prefix}.csv"
     filepath = os.path.join(OUTPUT_DIR, filename)
-    df.to_csv(filepath, index_label="")
+    df.to_csv(filepath, index = True)
     system_log.info(f"Matrix saved to {filepath}")
     return filepath
 
 def generate_confidence_matrix():
     try:
-        df_matrix = generate_labeled_matrix('dummy_user_details.json', 'config.json')
-        judge_score = generate_judge_score_matrix('dummy_user_details.json', 'config.json')
+        users = get_all_user_details()
+        df_matrix = generate_labeled_matrix(users, 'config.json')
+        judge_score = generate_judge_score_matrix(users, 'config.json')
         
         print("\n--- MATCH CONFIDENCE MATRIX (Rows: User A, Cols: User B) ---")
         print("Note: Scores close to 1.0 are strong matches. -10.0 indicates a Deal Breaker.\n")
@@ -50,6 +52,14 @@ def generate_confidence_matrix():
        
         df_judge = pd.DataFrame(judge_score)
         df_matrix = pd.DataFrame(df_matrix)
+        name_to_id = {u['user_name']: u['id'] for u in users}
+        ids = [name_to_id.get(name) for name in df_matrix.index]
+
+        df_matrix.index = pd.MultiIndex.from_tuples(list(zip(ids, df_matrix.index)), names=['id', 'name'])
+        df_matrix.columns = pd.MultiIndex.from_tuples(list(zip(ids, df_matrix.columns)), names=['id', 'name'])
+
+        df_judge.index = pd.MultiIndex.from_tuples(list(zip(ids, df_judge.index)), names=['id', 'name'])
+        df_judge.columns = pd.MultiIndex.from_tuples(list(zip(ids, df_judge.columns)), names=['id', 'name'])
 
         path_normal = save_matrix(df_matrix, "normal_score_matrix")
         path_judge = save_matrix(df_judge, "judge_score_matrix")
