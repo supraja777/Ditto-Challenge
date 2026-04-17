@@ -154,7 +154,9 @@ def render_heartbeat_ui():
                             
                             # Optional: Show a preview of the new weights
                             with st.expander("View Updated Weights"):
-                                st.json(new_config['weights'])
+                                st.json(new_config['weights']) 
+                            with st.expander("View System Values"):
+                                st.json(new_config['matching_logic'])
 
         # --- THURSDAY PERSISTENCE LOGIC ---
         if day == "Thursday" and st.session_state.get("show_feedback_ui", False):

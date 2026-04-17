@@ -1,7 +1,8 @@
 {
   "matching_logic": {
     "top_k_matches": 3,
-    "exploitation_rate": 0.7,
+    "exploitation_rate": 0.55,
+    "exploration_rate": 0.44999999999999996,
     "target_matches": 5,
     "threshold": 0.7100000000000001,
     "num_conversation_rounds": 5
@@ -11,14 +12,14 @@
     "location_w": 0.2,
     "social_energy_w": 0.1,
     "intellectual_w": 0.2,
-    "personality_embedding_w": 0.39999999999999997,
-    "traits_embedding_w": 0.3,
-    "w_normal": 0.7999999999999999,
-    "w_judge": 0.20000000000000007
+    "personality_embedding_w": 0.5,
+    "traits_embedding_w": 0.4,
+    "w_normal": 0.8,
+    "w_judge": 0.2
   },
   "embedding_config": {
     "vector_size": 4,
-    "bias": 0.019999999999999997
+    "bias": 0.0
   },
   "constraints": {
     "max_age_diff": 10,
