@@ -9,7 +9,6 @@ load_dotenv()
 from app_logging import setup_matchmaking_loggers
 system_log, ai_log = setup_matchmaking_loggers()
 
-# Initialize Groq Client
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 def get_agent_response(self_info, partner_name, history):
     """Generates a response for a specific user persona."""
@@ -31,7 +30,7 @@ def get_agent_response(self_info, partner_name, history):
     
     chat_completion = client.chat.completions.create(
         messages=messages,
-        model="llama-3.3-70b-versatile", # High reasoning for persona depth
+        model="llama-3.3-70b-versatile",
         temperature=0.7,
     )
     return chat_completion.choices[0].message.content
@@ -65,7 +64,7 @@ def judge_verdict(user_a, user_b, transcript):
     
     response = client.chat.completions.create(
         messages=messages,
-        model="llama-3.1-8b-instant", # Faster for judging
+        model="llama-3.1-8b-instant",
         response_format={"type": "json_object"}
     )
     return json.loads(response.choices[0].message.content)
@@ -77,12 +76,10 @@ def date_simulation(user_a, user_b, rounds=1):
     transcript = []
     
     for _ in range(rounds):
-        # User A speaks
         resp_a = get_agent_response(user_a, user_b['user_name'], transcript)
         transcript.append({"role": "user", "name": user_a['user_name'], "content": resp_a})
         print(f"{user_a['user_name']}: {resp_a}")
         
-        # User B speaks
         resp_b = get_agent_response(user_b, user_a['user_name'], transcript)
         transcript.append({"role": "user", "name": user_b['user_name'], "content": resp_b})
         print(f"{user_b['user_name']}: {resp_b}")

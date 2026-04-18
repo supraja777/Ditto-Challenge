@@ -4,7 +4,6 @@ import streamlit as st
 from dotenv import load_dotenv
 from supabase import create_client, Client
 
-# Load credentials from .env
 load_dotenv()
 
 url = os.environ.get("SUPABASE_URL")
@@ -17,9 +16,6 @@ def get_all_matches():
     Returns a list of dicts: {userNameA, userNameB, confidence_score, match_id}
     """
     try:
-        # We query the 'matches' table and use Supabase's 'dot notation' 
-        # to pull the related user_name from the 'users' table.
-        # This assumes your foreign keys are set up correctly.
         response = supabase.table("matches").select(
             "id",
             "confidence_score",
@@ -30,7 +26,6 @@ def get_all_matches():
         raw_matches = response.data
         formatted_matches = []
 
-        # Optimization: Fetch a mapping of IDs to Names to avoid multiple DB hits
         users_response = supabase.table("users").select("id", "user_name").execute()
         user_map = {u['id']: u['user_name'] for u in users_response.data}
 

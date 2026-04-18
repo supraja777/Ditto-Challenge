@@ -1,5 +1,6 @@
 from datetime import datetime
 import json
+import random
 import numpy as np
 import pandas as pd
 
@@ -36,7 +37,6 @@ def generate_confidence_matrix():
         print("Note: Scores close to 1.0 are strong matches. -10.0 indicates a Deal Breaker.\n")
         print(df_matrix.to_string())
         
-        # Quick view of best potential pairs
         print("\n--- HIGHEST RAW SCORES ---")
         unstacked = df_matrix.unstack().sort_values(ascending=False)
         print(unstacked[unstacked > 0].head(10))
@@ -45,7 +45,6 @@ def generate_confidence_matrix():
         print("Note: Scores close to 1.0 are strong matches. -10.0 indicates a Deal Breaker.\n")
         print(judge_score.to_string())
         
-        # Quick view of best potential pairs
         print("\n--- HIGHEST RAW SCORES ---")
         unstacked = judge_score.unstack().sort_values(ascending=False)
         print(unstacked[unstacked > 0].head(10))
@@ -65,6 +64,29 @@ def generate_confidence_matrix():
         path_judge = save_matrix(df_judge, "judge_score_matrix")
 
         df_final = (df_matrix * config['weights']['w_normal']) + (df_judge * config['weights']['w_judge'])
+
+        exploration_rate = config['matching_logic'].get('exploration_rate', 0.1)
+
+        if random.random() < exploration_rate:
+            # --- EXPLORE MODE ---
+            # Adding noise to shuffle the rankings
+            noise = np.random.uniform(-0.15, 0.15, size=df_final.shape)
+            df_final = (df_final + noise)
+            print("🎲 Strategy: EXPLORATION (Noise injected to discover new patterns)")
+        else:
+            # --- EXPLOIT MODE ---
+            # No noise
+            print("🎯 Strategy: EXPLOITATION (Strict adherence to calculated weights)")
+
+        # Normalizing values.
+        min_val = df_final.values.min()
+        max_val = df_final.values.max()
+
+        if max_val > min_val:
+            df_final = (df_final - min_val) / (max_val - min_val)
+        else:
+            df_final = df_final / max_val if max_val != 0 else df_final
         path_final_matrix = save_matrix(df_final, "matches_score_matrix")
+
     except Exception as e:
         print(f"Error: {e}. Ensure JSON files are formatted correctly.")

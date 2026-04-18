@@ -13,7 +13,6 @@ def generate_judge_score_matrix(users, config_file):
 
     n = len(users)
     names = [u['user_name'] for u in users]
-    # Initialize with float type to avoid ufunc errors later
     judge_matrix = np.full((n, n), -1.0, dtype=float)
 
     st.info(f"🚀 Initializing Full Mesh Simulation for **{n} users**...")
@@ -30,7 +29,6 @@ def generate_judge_score_matrix(users, config_file):
                 
                 st.write(f"🎭 Simulating: **{user_a_name}** & **{user_b_name}**")
                 
-                # Execute simulation - ensure result is cast to float
                 try:
                     simulated_judge_score = float(date_simulation(users[i], users[j], 1))
                 except (ValueError, TypeError):
@@ -50,14 +48,12 @@ def ensure_float_list(v):
     """Converts string representation of lists into actual lists of floats."""
     if isinstance(v, str):
         try:
-            # Turns "[0.1, 0.2]" into [0.1, 0.2]
             v = ast.literal_eval(v)
         except (ValueError, SyntaxError):
-            return np.zeros(4) # Fallback to zero vector if parsing fails
+            return np.zeros(4)
     return np.array(v, dtype=float)
 
 def cosine_similarity(v1, v2):
-    # CRITICAL: Parse strings into lists, then convert to numpy arrays
     v1 = ensure_float_list(v1)
     v2 = ensure_float_list(v2)
     
@@ -93,18 +89,15 @@ def generate_labeled_matrix(users, config_file):
             
             user_a, user_b = users[i], users[j]
 
-            # 1. Deal Breakers (disjoint returns True if no common elements)
             a_breakers = set(user_a.get('deal_breakers') or [])
             b_traits = set(user_b.get('traits') or [])
             if not a_breakers.isdisjoint(b_traits):
                 matrix[i][j] = -10.0 
                 continue
 
-            # 2. Embedding similarities
             pers_sim = cosine_similarity(user_a.get('personality_embedding', []), user_b.get('personality_embedding', []))
             trait_sim = cosine_similarity(user_a.get('trait_embeddings', []), user_b.get('trait_embeddings', []))
 
-            # 3. Scalar Scoring - with safety checks for missing config
             max_age_diff = c.get('max_age_diff', 20)
             age_diff = abs(float(user_a.get('age', 0)) - float(user_b.get('age', 0)))
             age_score = max(0.0, 1.0 - (age_diff / max_age_diff))
@@ -116,7 +109,6 @@ def generate_labeled_matrix(users, config_file):
             
             intel_score = 1.0 if user_a.get('intellectual_focus') == user_b.get('intellectual_focus') else 0.0
 
-            # 4. Final Aggregation using float casting for weights
             score = (
                 (pers_sim * float(weights.get('personality_embedding_w', 0))) +
                 (trait_sim * float(weights.get('traits_embedding_w', 0))) +

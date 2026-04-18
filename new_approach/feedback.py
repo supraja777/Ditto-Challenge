@@ -3,7 +3,6 @@ import pandas as pd
 import os
 from datetime import datetime
 
-# Path to the matches generated on Wednesday
 MATCHES_FILE = os.path.join("outputs", "final_match_pairs.csv")
 FEEDBACK_FILE = os.path.join("outputs", "raw_feedback_collection.csv")
 
@@ -16,16 +15,13 @@ def render_feedback_ui():
         st.error("No match pairs found. Please run the Wednesday 'Push Results' protocol first.")
         return
 
-    # Load the pairs
     df_matches = pd.read_csv(MATCHES_FILE)
 
-    # UI for the match list
     for index, row in df_matches.iterrows():
         user_a = row['user_a']
         user_b = row['user_b']
         score = row['confidence_score']
 
-        # Create a "Match Card" using an expander
         with st.expander(f"🤝 Match: {user_a} x {user_b} (Score: {score:.2f})"):
             st.info(f"Record the interaction details for this pair to update their behavioral vectors.")
             
@@ -54,13 +50,10 @@ def save_feedback(a, b, feedback_for_a, feedback_for_b):
     """
     Saves feedback in the specific format: user_a, user_b, feedback_for_a, feedback_for_b
     """
-    # Validation: Don't save if both fields are empty
     if not feedback_for_a.strip() and not feedback_for_b.strip():
         st.warning("Please enter feedback for at least one user before saving.")
         return
 
-    # Prepare the data row
-    # Note: 'feedback_for_a' is what USER_B said about USER_A
     new_entry = pd.DataFrame([{
         "user_a": a,
         "user_b": b,
@@ -69,10 +62,8 @@ def save_feedback(a, b, feedback_for_a, feedback_for_b):
         "recorded_at": datetime.now().strftime("%Y-%m-%d %H:%M") # Useful for Friday sorting
     }])
     
-    # Path to your collection file
     COLLECTION_FILE = os.path.join("outputs", "user_feedback_collection.csv")
     
-    # Append logic
     file_exists = os.path.isfile(COLLECTION_FILE)
     new_entry.to_csv(COLLECTION_FILE, mode='a', index=False, header=not file_exists)
     

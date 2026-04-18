@@ -4,7 +4,6 @@ import streamlit as st
 from dotenv import load_dotenv
 from supabase import create_client, Client
 
-# Load credentials from .env
 load_dotenv()
 
 url = os.environ.get("SUPABASE_URL")
@@ -17,7 +16,6 @@ def get_all_user_details():
     Returns: List of dictionaries (one per user).
     """
     try:
-        # Select '*' fetches all columns, including vectors and arrays
         response = supabase.table("users").select("*").execute()
         
         if response.data:

@@ -1,7 +1,6 @@
 from supabase import create_client, Client
 import os
 
-# Initialize Supabase client (Ensure these are in your .env or streamlit secrets)
 url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 supabase: Client = create_client(url, key)
@@ -17,7 +16,6 @@ def update_match_feedback(match_id, feedback_text, for_user_a=True, accepted=Tru
         accepted (bool): The final acceptance state of the match.
     """
     try:
-        # Determine which column to update based on which user is giving feedback
         feedback_column = "feedback_for_a" if for_user_a else "feedback_for_b"
         
         update_data = {
@@ -55,19 +53,15 @@ def upload_matches_to_supabase(final_pairs):
     
     for pair in final_pairs:
         try:
-            # We use upsert to prevent duplicates if user_a and user_b already exist as a pair
-            # This matches the schema we created (user_a_id, user_b_id, confidence_score)
             data = {
                 "user_a_id": pair["user_a_id"],
                 "user_b_id": pair["user_b_id"],
                 "confidence_score": pair["confidence_score"],
-                "accepted": False  # Default state for Wednesday
+                "accepted": False
             }
 
             print("What is the data?? ", data)
             
-            # Using .upsert() requires a unique constraint on (user_a_id, user_b_id) 
-            # in Supabase to work perfectly, otherwise use .insert()
             response = supabase.table("matches").insert(data).execute()
 
             print("What is teh repsinse ", response)

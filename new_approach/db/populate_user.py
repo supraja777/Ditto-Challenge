@@ -4,7 +4,6 @@ import uuid
 from dotenv import load_dotenv
 from supabase import create_client, Client
 
-# Load credentials from .env
 load_dotenv()
 
 url = os.environ.get("SUPABASE_URL")
@@ -23,7 +22,6 @@ def upload_dummy_users(json_file_path):
 
     for user in users_data:
         try:
-            # Map JSON keys to the Supabase Table Columns
             generated_id = str(uuid.uuid4())
             payload = {
                 "id": generated_id,
@@ -34,13 +32,12 @@ def upload_dummy_users(json_file_path):
                 "intellectual_focus": user.get("intellectual_focus"),
                 "intent": user.get("intent"),
                 "social_energy": user.get("social_energy"),
-                "traits": user.get("traits"),           # List/Array
-                "deal_breakers": user.get("deal_breakers"), # List/Array
-                "trait_embeddings": user.get("trait_embeddings"),     # Vector
-                "personality_embedding": user.get("personality_embedding") # Vector
+                "traits": user.get("traits"),          
+                "deal_breakers": user.get("deal_breakers"), 
+                "trait_embeddings": user.get("trait_embeddings"),    
+                "personality_embedding": user.get("personality_embedding")
             }
 
-            # Upsert ensures that if the ID exists, it updates; otherwise, it inserts.
             supabase.table("users").upsert(payload).execute()
             print(f"✅ Successfully synced user: {user.get('user_name')} ({user.get('id')})")
 
@@ -50,12 +47,5 @@ def upload_dummy_users(json_file_path):
     print("🏁 Sync complete.")
 
 if __name__ == "__main__":
-    # Ensure this points to your specific JSON file name
     PATH_TO_JSON = os.path.join("./", "dummy_user_details.json")
     upload_dummy_users(PATH_TO_JSON)
-
-
-# if __name__ == "__main__":
-#     # Update this path to where your JSON is actually stored
-#     PATH_TO_JSON = os.path.join("./", "dummy_user_details.json")
-#     upload_dummy_users(PATH_TO_JSON)
